@@ -125,9 +125,9 @@ struct Triangle {
     struct Vec3 v0, v1, v2, normal;
 };
 
-// Casts a ray from origin (at camera) that figures out if you're gonna hit the triangle.
-bool raycast(struct Vec3 p_pos, struct Triangle shifted_tri) {
-    struct Vec3 solved = solve3Mat(m_mat(p_pos, shifted_tri.v1, shifted_tri.v2), shifted_tri.v0);
+// Casts ray from the origin in order to figure out if we've collided with the triangle.
+bool raycast(struct Vec3 ray, struct Triangle shifted_tri) {
+    struct Vec3 solved = solve3Mat(m_mat(ray, shifted_tri.v1, shifted_tri.v2), shifted_tri.v0);
     if(solved.x == NAN || solved.y == NAN || solved.z == NAN) {
         return false;
     }
@@ -136,6 +136,7 @@ bool raycast(struct Vec3 p_pos, struct Triangle shifted_tri) {
     return non_0 && in_tri;
 }
 
+// Does the lighting for a triangle provided the light is coming from a specific direction.
 char do_lighting(struct Triangle tri, struct Vec3 light_dir) {
     char DENSITIES[4] = {(char)176, (char)177, (char)178, (char)219};
 

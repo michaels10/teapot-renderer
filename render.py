@@ -84,6 +84,7 @@ CAM_DIM = (1., .25)
 C_DIST_EFF = .25
 C_POS = np.array([0., 0., -25.])
 
+# Shift_tris defined in update_window_model
 def render_object(c_pos, p_pos, shift_tris, normals):
     exists_collision = False 
     cur_tri = None
