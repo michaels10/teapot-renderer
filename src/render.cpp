@@ -12,42 +12,40 @@ Triangle const operator+(const Triangle &tri, const Vec3 &vec) {
     return Triangle(tri.v0 + vec, tri.v1 + vec, tri.v2 + vec, tri.normal); 
 }
 
+
 RaycastResult raycast(const Vec3 &origin, const Vec3 &ray, const Triangle &tri) {
-    // 1: Determine ray-plane intersection.
-    // Construct the point-norm eq Ax + By + Cz + D = 0
-    float D = -(tri.v0 ^ tri.normal); // hehe float D
-    // Solve Ax + By + Cz + D = 0, where (x,y,z) = tR+O
-    // Can factor out the O:
-    float Ds = D + (tri.normal ^ origin);
-    // Now the eq is to check if Apt + Bqt + Crt = -D
-    // We can merge Ap, Bq, Cr = F to get Ft = -D
+    // Now the eq is to check if Apt + Bqt + Crt = D
+    // Rewriting this: (a^x) t + a^o = D gives us t = D / (a^t x)
     float F = tri.normal ^ ray;
-    float t = -Ds / F;
-    Vec3 i = (t * ray) + origin;
-    // If F is zero then the plane and ray are parallel
+    if (fabs(F) < EPS) {
+        return RaycastResult(false);
+    }
+
+    // Construct the point-norm eq Ax + By + Cz = D
+    float t = ((tri.v0 - origin) ^ tri.normal)/ F;
     // If t is negative, then there is no intersection
-    if (fabs(F) < EPS || t < EPS) {
+    if (t < EPS) {
         return RaycastResult(false);
     }
-    Vec3 intersect = origin + ray * t;
-    // Determine barycentric basis.
-    Vec3 A = tri.v1 - tri.v0;
-    Vec3 B = tri.v2 - tri.v1;
-    Vec3 C = tri.v0 - tri.v2;
-    Vec3 AP = intersect - tri.v0;
-    Vec3 BP = intersect - tri.v1;
-    Vec3 CP = intersect - tri.v2;
-    // Now check if intersection point is in the interior of the v1 crux angle
-    if (((A % AP) ^ tri.normal) < 0) {
+
+    Vec3 intersect = (ray * t) - tri.v0 + origin;
+    Vec3 v0 = tri.v1 - tri.v0;
+    Vec3 v1 = tri.v2 - tri.v0;
+    float gamma = (v0 ^ v1) / (v0 ^ v0);
+    Vec3 v2 = v1 - gamma * v0;
+    
+    // Coordinates in triangle-basis
+    float b = (v2 ^ intersect) / (v2 ^ v2);
+    float a = (intersect ^ v0) / (v0 ^ v0) - b * gamma;
+
+    if (a < 0 || b < 0) {
         return RaycastResult(false);
     }
-    if (((B % BP) ^ tri.normal) < 0) {
+    if (a + b > 1) {
         return RaycastResult(false);
     }
-    if (((C % CP) ^ tri.normal) < 0) {
-        return RaycastResult(false);
-    }
-    return RaycastResult(intersect, t, tri);
+
+    return RaycastResult(intersect + tri.v0, t, tri);
 }
 
 RaycastResult intersect(const Scene &scene, const Vec3 &origin, const Vec3 &ray) {
