@@ -2,6 +2,7 @@
 lib/render\.so
 
 \.vscode/
+\.mypy_cache/
 
 \.ipynb_checkpoints/
 
