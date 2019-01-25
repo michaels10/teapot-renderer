@@ -6,6 +6,8 @@
 #include <ostream>
 #include <queue>
 #include <vector>
+#include "linalg.h"
+
 using std::abs;
 using std::cout;
 using std::endl;
@@ -17,37 +19,12 @@ using std::swap;
 using std::vector;
 
 // forward declarations
-struct Vec3;
 struct Triangle;
-Vec3 operator+(const Vec3 &v0, const Vec3 &v1);
-Vec3 const operator-(const Vec3 &v0, const Vec3 &v1);
-Vec3 const operator-(const Vec3 &v0);
-Vec3 const operator*(const Vec3 &v0, const Vec3 &v1);
-Vec3 const operator*(const Vec3 &v0, float s);
-Vec3 const operator*(float s, const Vec3 &v0);
-Vec3 const operator/(const Vec3 &v0, float s);
-Vec3 const operator/(float s, const Vec3 &v0);
-Vec3 const operator%(const Vec3 &v0, const Vec3 &v1);
+
 Triangle const operator-(const Triangle &tri, const Vec3 &vec);
 Triangle const operator+(const Triangle &tri, const Vec3 &vec);
 float const operator^(const Vec3 &v0, const Vec3 &v1);
 
-struct Vec3 {
-  public:
-    float x, y, z;
-    bool valid = true;
-    Vec3(float x = 0, float y = 0, float z = 0) : x(x), y(y), z(z){};
-    Vec3 normalize() const;
-    float magnitude() const;
-    float sum() const;
-    float dot(const Vec3 &other) const;
-    Vec3 intersect(const Triangle &tri) const;
-
-    Vec3(const Vec3 &other);
-    void operator=(const Vec3 &other);
-
-    bool operator==(const Vec3 &other);
-};
 
 struct Triangle {
   public:
@@ -66,9 +43,14 @@ struct Triangle {
         refraction_index = other.refraction_index;
         scattering = other.scattering;
     }
-    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2) : v0(v0), v1(v1), v2(v2) { normal = ((v1 - v0) % (v2 - v0)).normalize(); };
-    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal) : v0(v0), v1(v1), v2(v2), normal(normal){};
-    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal, float refraction_index, float scattering) : v0(v0), v1(v1), v2(v2), normal(normal), scattering(scattering), refraction_index(refraction_index){};
+    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2) : v0(v0), v1(v1), v2(v2) { 
+        normal = ((v1 - v0) % (v2 - v0)).normalize(); 
+    };
+    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal) : 
+        v0(v0), v1(v1), v2(v2), normal(normal) {};
+
+    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal, float refraction_index, float scattering) : 
+        v0(v0), v1(v1), v2(v2), normal(normal), scattering(scattering), refraction_index(refraction_index){};
     void operator=(const Triangle &other) {
         v0 = other.v0;
         v1 = other.v1;
@@ -123,24 +105,6 @@ struct RayTask {
     float multiplier;
     float refraction_index;
     int bounce_count;
-};
-
-struct Mat3 {
-  public:
-    float data[3][3];
-    Mat3(const Vec3 &c0, const Vec3 &c1, const Vec3 &c2) {
-        data[0][0] = c0.x;
-        data[1][0] = c0.y;
-        data[2][0] = c0.z;
-        data[0][1] = c1.x;
-        data[1][1] = c1.y;
-        data[2][1] = c1.z;
-        data[0][2] = c2.x;
-        data[1][2] = c2.y;
-        data[2][2] = c2.z;
-    }
-    Vec3 solve(const Vec3 &rhs);
-    float det();
 };
 
 RaycastResult raycast(const Vec3 &origin, const Vec3 &ray, const Triangle &tri);

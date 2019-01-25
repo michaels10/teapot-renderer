@@ -1,5 +1,5 @@
 #include "python_interface.h"
-
+#include "linalg.h"
 
 extern "C" void add_triangle(PyTriangle *tri, PyScene *scene) {
     Vec3 v0(tri->v0.x, tri->v0.y, tri->v0.z);

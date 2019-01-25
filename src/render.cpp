@@ -1,120 +1,20 @@
 #include "render.h"
 
 const float PI = 3.1415926;
-const float EPS = 0.00001;
 const float OBJECT_DIFFUSE = 0.95;
 const float OBJECT_REFLECT = 0.05;
-
-Vec3::Vec3(const Vec3 &other) {
-    x = other.x;
-    y = other.y;
-    z = other.z;
-}
-void Vec3::operator=(const Vec3 &other) {
-    x = other.x;
-    y = other.y;
-    z = other.z;
-}
-bool Vec3::operator==(const Vec3 &other) { return x == other.x && y == other.y && z == other.z; }
-float Vec3::magnitude() const { return sqrt(x * x + y * y + z * z); }
-Vec3 Vec3::normalize() const {
-    float mag = magnitude();
-    return Vec3(x / mag, y / mag, z / mag);
-}
-float Vec3::dot(const Vec3 &other) const { return other.x * x + other.y * y + other.z * z; }
-float Vec3::sum() const { return x + y + z; }
-Vec3 operator+(const Vec3 &v0, const Vec3 &v1) {
-    Vec3 v;
-    v.x = v0.x + v1.x;
-    v.y = v0.y + v1.y;
-    v.z = v0.z + v1.z;
-    return v;
-}
-Vec3 const operator-(const Vec3 &v0, const Vec3 &v1) {
-    Vec3 v;
-    v.x = v0.x - v1.x;
-    v.y = v0.y - v1.y;
-    v.z = v0.z - v1.z;
-    return v;
-}
-Vec3 const operator-(const Vec3 &v0) { return Vec3(-v0.x, -v0.y, -v0.z); }
-Vec3 const operator*(const Vec3 &v0, const Vec3 &v1) {
-    Vec3 v;
-    v.x = v0.x * v1.x;
-    v.y = v0.y * v1.y;
-    v.z = v0.z * v1.z;
-    return v;
-}
-Vec3 const operator*(const Vec3 &v0, float s) {
-    Vec3 v;
-    v.x = v0.x * s;
-    v.y = v0.y * s;
-    v.z = v0.z * s;
-    return v;
-}
-Vec3 const operator*(float s, const Vec3 &v0) { return v0 * s; }
-Vec3 const operator/(const Vec3 &v0, float s) {
-    Vec3 v;
-    v.x = v0.x / s;
-    v.y = v0.y / s;
-    v.z = v0.z / s;
-    return v;
-}
-Vec3 const operator/(float s, const Vec3 &v0) { return v0 / s; }
-/**
- * This does the cross-product of two vectors.
- **/
-Vec3 const operator%(const Vec3 &v0, const Vec3 &v1) {
-    Vec3 v;
-    v.x = v0.y * v1.z - v0.z * v1.y;
-    v.y = v0.z * v1.x - v0.x * v1.z;
-    v.z = v0.x * v1.y - v0.y * v1.x;
-    return v;
-}
 
 /**
  * This does the dot product of two vectors.
  **/
 float const operator^(const Vec3 &v0, const Vec3 &v1) { return v0.dot(v1); }
 
-Triangle const operator-(const Triangle &tri, const Vec3 &vec) { return Triangle(tri.v0 - vec, tri.v1 - vec, tri.v2 - vec, tri.normal); }
-Triangle const operator+(const Triangle &tri, const Vec3 &vec) { return Triangle(tri.v0 + vec, tri.v1 + vec, tri.v2 + vec, tri.normal); }
-
-float Mat3::det() {
-    float det = data[0][0] * (data[1][1] * data[2][2] - data[1][2] * data[2][1]);
-    det -= data[0][1] * (data[1][0] * data[2][2] - data[1][2] * data[2][0]);
-    det -= data[0][2] * (data[1][0] * data[2][1] - data[1][1] * data[2][0]);
-    return det;
+Triangle const operator-(const Triangle &tri, const Vec3 &vec) { 
+    return Triangle(tri.v0 - vec, tri.v1 - vec, tri.v2 - vec, tri.normal); 
 }
 
-Vec3 Mat3::solve(const Vec3 &b) {
-    double determinant = det();
-    if ((-EPS < determinant && determinant < EPS) || data[0][0] == 0) {
-        return Vec3(NAN, NAN, NAN);
-    }
-
-    double r1Rescale = data[1][0] / data[0][0];
-    double b11 = data[1][1] - data[0][1] * r1Rescale;
-    double b12 = data[1][2] - data[0][2] * r1Rescale;
-    double c1 = b.y - b.x * r1Rescale;
-
-    double r2Rescale = data[2][0] / data[0][0];
-    double b21 = data[2][1] - data[0][1] * r2Rescale;
-    double b22 = data[2][2] - data[0][2] * r2Rescale;
-    double c2 = b.z - b.x * r2Rescale;
-
-    if (-EPS < b11 && b11 < EPS) {
-        return Vec3(NAN, NAN, NAN);
-    }
-
-    double zRescale = b21 / b11;
-
-    struct Vec3 v;
-    v.z = (c2 - c1 * zRescale) / (b22 - b12 * zRescale);
-    v.y = (c1 - b12 * v.z) / b11;
-    v.x = (b.x - data[0][1] * v.y - data[0][2] * v.z) / data[0][0];
-
-    return v;
+Triangle const operator+(const Triangle &tri, const Vec3 &vec) { 
+    return Triangle(tri.v0 + vec, tri.v1 + vec, tri.v2 + vec, tri.normal); 
 }
 
 RaycastResult raycast(const Vec3 &origin, const Vec3 &ray, const Triangle &tri) {
