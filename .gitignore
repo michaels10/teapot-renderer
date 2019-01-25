@@ -6,3 +6,7 @@ lib/render\.so
 \.ipynb_checkpoints/
 
 __pycache__/
+
+*.o
+
+\./squishsquash
