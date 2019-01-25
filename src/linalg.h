@@ -27,9 +27,10 @@ struct Vec3 {
 
     // Two-vector operations.
     Vec3 operator*(const Vec3 &v) const;
+    Vec3 operator+(const Vec3 &v) const;
     Vec3 operator-(const Vec3 &v) const;
     Vec3 operator%(const Vec3 &v) const;
-    Vec3 operator+(const Vec3 &v) const;
+    float operator^(const Vec3 &v) const;
 
     // Helper functions
     Vec3 normalize() const;

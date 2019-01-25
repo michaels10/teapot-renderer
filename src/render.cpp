@@ -4,11 +4,6 @@ const float PI = 3.1415926;
 const float OBJECT_DIFFUSE = 0.95;
 const float OBJECT_REFLECT = 0.05;
 
-/**
- * This does the dot product of two vectors.
- **/
-float const operator^(const Vec3 &v0, const Vec3 &v1) { return v0.dot(v1); }
-
 Triangle const operator-(const Triangle &tri, const Vec3 &vec) { 
     return Triangle(tri.v0 - vec, tri.v1 - vec, tri.v2 - vec, tri.normal); 
 }

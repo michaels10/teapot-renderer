@@ -23,8 +23,6 @@ struct Triangle;
 
 Triangle const operator-(const Triangle &tri, const Vec3 &vec);
 Triangle const operator+(const Triangle &tri, const Vec3 &vec);
-float const operator^(const Vec3 &v0, const Vec3 &v1);
-
 
 struct Triangle {
   public:

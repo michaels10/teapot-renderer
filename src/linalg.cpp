@@ -36,6 +36,11 @@ Vec3 Vec3::operator-(const Vec3 &v) const{
     return (*this) + (-v);
 }
 
+ // This does the dot product of two vectors.
+float Vec3::operator^(const Vec3 &v) const { 
+    return x * v.x + y * v.y + z * v.z;
+}
+
 // Vector cross-product
 Vec3 Vec3::operator%(const Vec3 &v) const{
     Vec3 v_out;
@@ -47,10 +52,6 @@ Vec3 Vec3::operator%(const Vec3 &v) const{
 
 float Vec3::sum() const { 
     return x + y + z; 
-}
-
-float Vec3::dot(const Vec3 &v) const { 
-    return x * v.x +  y * v.y + z * v.z; 
 }
 
 float Vec3::magnitude() const { 
