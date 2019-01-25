@@ -1,19 +1,12 @@
 from matplotlib import pyplot as plt
 from stl_lib import read_stl
-from render_ffi import stl_forge, render, make_vec3, make_light, add_light, add_triangle, make_triangle
+from render import stl_forge, Canvas, Light, add_light, render
 
 
-vertices, normals = read_stl("UtahTeapot.stl")
-stl_forge(vertices, normals)
+vertices, normals = read_stl("stl/teacup-plane.stl")
+scene = stl_forge(vertices, normals)
+add_light(scene, Light([0,0,-10], 10))
+canvas = Canvas(600, 600)
+m = render(scene, canvas)
 
-
-#v0 = make_vec3(0, -1, 1)
-#v1 = make_vec3(-1, 0, 1)
-#v2 = make_vec3(1, 0, 1)
-#n = make_vec3(0, 0, -1)
-#add_triangle(make_triangle(v0, v1, v2,n))
-add_light(make_light(make_vec3(0, 0, -10), 10))
-
-m = render()
-print(m)
-plt.imsave("render.png", m)
+plt.imsave("render.png", m, cmap='Greys')

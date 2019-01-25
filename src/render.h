@@ -63,14 +63,19 @@ struct Triangle {
         v1 = other.v1;
         v2 = other.v2;
         normal = other.normal;
+        refraction_index = other.refraction_index;
+        scattering = other.scattering;
     }
     Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2) : v0(v0), v1(v1), v2(v2) { normal = ((v1 - v0) % (v2 - v0)).normalize(); };
     Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal) : v0(v0), v1(v1), v2(v2), normal(normal){};
+    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal, float refraction_index, float scattering) : v0(v0), v1(v1), v2(v2), normal(normal), scattering(scattering), refraction_index(refraction_index){};
     void operator=(const Triangle &other) {
         v0 = other.v0;
         v1 = other.v1;
         v2 = other.v2;
         normal = other.normal;
+        refraction_index = other.refraction_index;
+        scattering = other.scattering;
     }
 };
 
