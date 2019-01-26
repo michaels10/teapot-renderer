@@ -70,11 +70,11 @@ struct Light {
 struct Camera {
   public:
     Vec3 loc = Vec3(0, 4, -10);
-    Vec3 rotation; // PYR, default is looking down Z+
+    Vec3 rotation;// = Vec3(-0.523599, 0, 0); // PYR, default is looking down Z+
     float focal_plane_width = 1;
     float focal_plane_height = 1;
-    float focal_plane_distance = 100;
-    int max_reflections = 32;
+    float focal_plane_distance = 1000;
+    int max_reflections = 128;
 };
 
 struct Scene {

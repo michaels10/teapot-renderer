@@ -1,7 +1,8 @@
 #include "render.h"
 
 const float PI = 3.1415926;
-const int PIXEL_BLOCK_SIZE = 16;
+const int BLOCK_SIZE = 64;
+const int PIXEL_BLOCK_SIZE = 2*BLOCK_SIZE/sizeof(float);
 
 Triangle const operator-(const Triangle &tri, const Vec3 &vec) { return Triangle(tri.v0 - vec, tri.v1 - vec, tri.v2 - vec, tri.normal); }
 
@@ -127,11 +128,11 @@ void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j
     RaycastResult hit = intersect(scene, ray.origin, ray.ray);
     if (hit.hit) {
         canvas[i][j] += local_illuminate(hit, scene) * hit.triangle.scattering;
-        if (hit.triangle.scattering < 1) {
+        if (hit.triangle.scattering+EPS < 1) {
             float fresnel_intensity = 1 - hit.triangle.scattering;
             float reflection_intensity = fresnel(ray, hit);
             Ray reflection_ray = reflect(ray, hit);
-            render_ray(canvas, scene, reflection_ray, i, j, multiplier * reflection_intensity * fresnel_intensity, reflection_count + 1,
+            render_ray(canvas, scene, reflection_ray, i, j, multiplier * fresnel_intensity*reflection_intensity, reflection_count + 1,
                        max_reflections);
             /**if (reflection_intensity + EPS < 1.0) {
                 float refraction_intensity = 1 - reflection_intensity;
@@ -172,7 +173,6 @@ void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<i
             Ray ray = get_initial_ray(canvas, camera, ray_id);
             render_ray(canvas, scene, ray, i, j, 1, 0, camera.max_reflections);
         }
-        printf("Finished subrender %d\n", start_ray_id);
     }
 }
 
