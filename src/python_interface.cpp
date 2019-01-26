@@ -26,5 +26,5 @@ extern "C" void __init_canvas(PyCanvas *canvas, int width, int height) {
 }
 
 extern "C" void render(PyScene* scene, PyCanvas* canvas) {
-    render(*canvas->cpp_canvas, *scene->scene);
+    render(*canvas->cpp_canvas, *scene->scene, Camera());
 }

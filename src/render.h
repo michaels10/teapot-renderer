@@ -1,28 +1,28 @@
 #ifndef RENDER_H
 #define RENDER_H
 #include "linalg.h"
-#include "ray_queue.h"
+#include "stdio.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <ostream>
 #include <queue>
+#include <thread>
 #include <vector>
-#include "stdio.h"
 using std::abs;
 using std::cout;
 using std::endl;
 using std::max;
 using std::min;
 using std::queue;
+using std::ref;
 using std::sqrt;
 using std::swap;
+using std::thread;
 using std::vector;
-using std::ref;
 
 // forward declarations
 struct Triangle;
-struct RayQueue;
 
 Triangle const operator-(const Triangle &tri, const Vec3 &vec);
 Triangle const operator+(const Triangle &tri, const Vec3 &vec);
@@ -44,16 +44,11 @@ struct Triangle {
         refraction_index = other.refraction_index;
         scattering = other.scattering;
     }
-    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2) : v0(v0), v1(v1), v2(v2) {
-        normal = ((v1 - v0) % (v2 - v0)).normalize();
-    };
-    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal)
-        : v0(v0), v1(v1), v2(v2), normal(normal){};
+    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2) : v0(v0), v1(v1), v2(v2) { normal = ((v1 - v0) % (v2 - v0)).normalize(); };
+    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal) : v0(v0), v1(v1), v2(v2), normal(normal){};
 
-    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal,
-             float refraction_index, float scattering)
-        : v0(v0), v1(v1), v2(v2), normal(normal), scattering(scattering),
-          refraction_index(refraction_index){};
+    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal, float refraction_index, float scattering)
+        : v0(v0), v1(v1), v2(v2), normal(normal), refraction_index(refraction_index), scattering(scattering){};
     void operator=(const Triangle &other) {
         v0 = other.v0;
         v1 = other.v1;
@@ -71,13 +66,14 @@ struct Light {
 };
 
 struct Camera {
-    public:
-    Vec3 loc;
-    Vec3 rotation; // YPR
-    float focal_plane_width = 10;
-    float focal_plane_height = 10;
-    float focal_plane_distance = 10;
-}
+  public:
+    Vec3 loc = Vec3(0, 4, -10);
+    Vec3 rotation; // PYR, default is looking down Z+
+    float focal_plane_width = 1;
+    float focal_plane_height = 1;
+    float focal_plane_distance = 100;
+    int max_reflections = 32;
+};
 
 struct Scene {
   public:
@@ -109,17 +105,15 @@ struct Canvas {
     float *operator[](int row) { return &buffer[row * width]; }
 };
 
-struct RayTask {
+struct Ray {
   public:
     Vec3 origin;
     Vec3 ray;
-    int i, j;
-    float multiplier;
-    float refraction_index;
-    int bounce_count;
+    float refraction_index = 1;
 };
 
-RaycastResult raycast(const Vec3 &origin, const Vec3 &ray, const Triangle &tri);
-void subrender(Canvas &canvas, const Scene &scene, int max_reflections, RayQueue &ray_queue);
-void render(Canvas &canvas, const Scene &scene);
+void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j, float multiplier, int reflection_count, int max_reflections);
+void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, int start_ray_id);
+Ray get_initial_ray(const Canvas &canvas, const Camera &camera, int ray_id);
+void render(Canvas &canvas, const Scene &scene, const Camera &camera);
 #endif
