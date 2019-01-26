@@ -1,18 +1,11 @@
 #include "render.h"
 
 const float PI = 3.1415926;
-const float OBJECT_DIFFUSE = 0.95;
-const float OBJECT_REFLECT = 0.05;
-const int CONCURRENT_BATCH_SIZE = 128*1;
+const int PIXEL_BLOCK_SIZE = 16;
 
-Triangle const operator-(const Triangle &tri, const Vec3 &vec) {
-    return Triangle(tri.v0 - vec, tri.v1 - vec, tri.v2 - vec, tri.normal);
-}
+Triangle const operator-(const Triangle &tri, const Vec3 &vec) { return Triangle(tri.v0 - vec, tri.v1 - vec, tri.v2 - vec, tri.normal); }
 
-Triangle const operator+(const Triangle &tri, const Vec3 &vec) {
-    return Triangle(tri.v0 + vec, tri.v1 + vec, tri.v2 + vec, tri.normal);
-}
-
+Triangle const operator+(const Triangle &tri, const Vec3 &vec) { return Triangle(tri.v0 + vec, tri.v1 + vec, tri.v2 + vec, tri.normal); }
 
 RaycastResult raycast(const Vec3 &origin, const Vec3 &ray, const Triangle &tri) {
     // Now the eq is to check if Apt + Bqt + Crt = D
@@ -23,7 +16,7 @@ RaycastResult raycast(const Vec3 &origin, const Vec3 &ray, const Triangle &tri) 
     }
 
     // Construct the point-norm eq Ax + By + Cz = D
-    float t = ((tri.v0 - origin) ^ tri.normal)/ F;
+    float t = ((tri.v0 - origin) ^ tri.normal) / F;
     // If t is negative, then there is no intersection
     if (t < EPS) {
         return RaycastResult(false);
@@ -34,7 +27,7 @@ RaycastResult raycast(const Vec3 &origin, const Vec3 &ray, const Triangle &tri) 
     Vec3 v1 = tri.v2 - tri.v0;
     float gamma = (v0 ^ v1) / (v0 ^ v0);
     Vec3 v2 = v1 - gamma * v0;
-    
+
     // Coordinates in triangle-basis
     float b = (v2 ^ intersect) / (v2 ^ v2);
     float a = (intersect ^ v0) / (v0 ^ v0) - b * gamma;
@@ -87,8 +80,8 @@ float local_illuminate(const RaycastResult &hit, const Scene &scene) {
     return total_illumination;
 }
 
-float fresnel(const RayTask &task, const RaycastResult &intersect) {
-    float cosi = task.ray ^ intersect.triangle.normal;
+float fresnel(const Ray &incident, const RaycastResult &intersect) {
+    float cosi = incident.ray ^ intersect.triangle.normal;
     float etai = 1;
     float etat = intersect.triangle.refraction_index;
     if (cosi > 0) {
@@ -107,93 +100,92 @@ float fresnel(const RayTask &task, const RaycastResult &intersect) {
     }
 }
 
-RayTask refract(const RayTask &task, const RaycastResult &intersect, float intensity) {
-    RayTask refract_task;
-    refract_task.bounce_count = task.bounce_count + 1;
-    refract_task.i = task.i;
-    refract_task.j = task.j;
-    refract_task.multiplier = task.multiplier * intensity;
-    refract_task.origin = intersect.intersect;
-
+Ray refract(const Ray &incident, const RaycastResult &intersect) {
+    Ray refract_ray;
+    refract_ray.refraction_index = intersect.triangle.refraction_index;
+    refract_ray.origin = intersect.intersect;
     float c = -intersect.triangle.normal.sum();
-    float r = task.refraction_index / intersect.triangle.refraction_index;
+    float r = incident.refraction_index / intersect.triangle.refraction_index;
     Vec3 v1 = Vec3(1, 1, 1);
-    Vec3 refraction =
-        (r * v1) + (r * c - sqrt(1 - r * r * (1 - c * c))) * intersect.triangle.normal;
-    refract_task.ray = refraction;
-    return refract_task;
+    Vec3 refraction = (r * v1) + (r * c - sqrt(1 - r * r * (1 - c * c))) * intersect.triangle.normal;
+    refract_ray.ray = refraction;
+    return refract_ray;
 }
 
-RayTask reflect(const RayTask &task, const RaycastResult &intersect, float intensity) {
-    RayTask reflect_task;
-    reflect_task.bounce_count = task.bounce_count + 1;
-    reflect_task.i = task.i;
-    reflect_task.j = task.j;
-    reflect_task.multiplier = task.multiplier;
-    reflect_task.origin = intersect.intersect;
-    reflect_task.ray =
-        task.ray - 2 * (task.ray ^ intersect.triangle.normal) * intersect.triangle.normal;
-    return reflect_task;
+Ray reflect(const Ray &incident, const RaycastResult &intersect) {
+    Ray reflect_ray;
+    reflect_ray.refraction_index = incident.refraction_index;
+    reflect_ray.origin = intersect.intersect;
+    reflect_ray.ray = incident.ray - 2 * (incident.ray ^ intersect.triangle.normal) * intersect.triangle.normal;
+    return reflect_ray;
 }
 
-void subrender(Canvas &canvas, const Scene &scene, int max_reflections, RayQueue &ray_queue) {
-    while (!ray_queue.empty()) {
-        vector<RayTask> tasks = ray_queue.pop_batch(CONCURRENT_BATCH_SIZE);
-        vector<RayTask> new_rays;
-        for (const RayTask &task : tasks) {
-            if (task.bounce_count < max_reflections) {
-                RaycastResult hit = intersect(scene, task.origin, task.ray);
-                if (hit.hit) {
-                    canvas[task.i][task.j] +=
-                        local_illuminate(hit, scene) * hit.triangle.scattering;
-                    if (hit.triangle.scattering < 1) {
-                        float fresnel_intensity = 1 - hit.triangle.scattering;
-                        float reflection_intensity = fresnel(task, hit);
-                        new_rays.push_back(
-                            reflect(task, hit, reflection_intensity * fresnel_intensity));
-                        new_rays.push_back(
-                            refract(task, hit, (1 - reflection_intensity) * fresnel_intensity));
-                    }
-                }
-            }
+void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j, float multiplier, int reflection_count, int max_reflections) {
+    if (reflection_count >= max_reflections) {
+        return;
+    }
+    RaycastResult hit = intersect(scene, ray.origin, ray.ray);
+    if (hit.hit) {
+        canvas[i][j] += local_illuminate(hit, scene) * hit.triangle.scattering;
+        if (hit.triangle.scattering < 1) {
+            float fresnel_intensity = 1 - hit.triangle.scattering;
+            float reflection_intensity = fresnel(ray, hit);
+            Ray reflection_ray = reflect(ray, hit);
+            render_ray(canvas, scene, reflection_ray, i, j, multiplier * reflection_intensity * fresnel_intensity, reflection_count + 1,
+                       max_reflections);
+            /**if (reflection_intensity + EPS < 1.0) {
+                float refraction_intensity = 1 - reflection_intensity;
+                Ray refraction_ray = refract(ray, hit);
+                render_ray(canvas, scene, refraction_ray, i, j, multiplier * refraction_intensity * fresnel_intensity, reflection_count + 1,
+                           max_reflections);
+            }**/
         }
-        ray_queue.push_batch(new_rays);
+    }
+}
+
+Ray get_initial_ray(const Canvas &canvas, const Camera &camera, int ray_id) {
+    int i = ray_id / canvas.width;
+    int j = ray_id % canvas.width;
+    Ray ray;
+    ray.origin = camera.loc;
+    float scaled_x = (j - canvas.width / 2.0) / 2.0 * camera.focal_plane_width;
+    float scaled_y = (canvas.height / 2.0 - i) / 2.0 * camera.focal_plane_height;
+    ray.ray = Vec3(scaled_x, scaled_y, camera.focal_plane_distance).normalize();
+    ray.ray = ray.ray.rotate(camera.rotation);
+    return ray;
+}
+
+void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<int> &block_queue, mutex &queue_lock) {
+    while (true) {
+        queue_lock.lock();
+        if (block_queue.empty()) {
+            queue_lock.unlock();
+            break;
+        }
+        int start_ray_id = block_queue.front();
+        block_queue.pop();
+        queue_lock.unlock();
+        int max_px = min(start_ray_id + PIXEL_BLOCK_SIZE, canvas.width * canvas.height);
+        for (int ray_id = start_ray_id; ray_id < max_px; ray_id++) {
+            int i = ray_id / canvas.width;
+            int j = ray_id % canvas.width;
+            Ray ray = get_initial_ray(canvas, camera, ray_id);
+            render_ray(canvas, scene, ray, i, j, 1, 0, camera.max_reflections);
+        }
+        printf("Finished subrender %d\n", start_ray_id);
     }
 }
 
-vector<RayTask> get_initial_rays(Canvas &canvas) {
-    Vec3 camera_loc(3, 4, -4);
-    float camera_width = 7;
-    float camera_height = 7;
-    float focal_plane = 3;
-    vector<RayTask> tasks;
-    for (int i = 0; i < canvas.height; i++) {
-        for (int j = 0; j < canvas.width; j++) {
-            RayTask task;
-            task.bounce_count = 0;
-            task.i = i;
-            task.j = j;
-            task.multiplier = 1;
-            task.origin = camera_loc;
-            float scaled_j = (j - canvas.width / 2.0) * camera_width;
-            float scaled_i = -(i - canvas.height / 2.0) * camera_height;
-            task.ray =
-                Vec3(camera_loc.x + scaled_j, camera_loc.y + scaled_i, camera_loc.z + focal_plane);
-            task.ray = task.ray - camera_loc;
-            task.ray = task.ray.normalize();
-            tasks.push_back(task);
-        }
-    }
-    return tasks;
-}
-
-void render(Canvas &canvas, const Scene &scene) {
-    RayQueue tasks(4096);
+void render(Canvas &canvas, const Scene &scene, const Camera &camera) {
     int n_workers = max((int)thread::hardware_concurrency() - 1, 1);
+    queue<int> blocks;
+    mutex queue_lock;
+    for (int i = 0; i < canvas.width * canvas.height; i += PIXEL_BLOCK_SIZE) {
+        blocks.push(i);
+    }
     vector<thread> threads;
-    tasks.push_batch(get_initial_rays(canvas));
     for (int i = 0; i < n_workers; i++) {
-        threads.push_back(thread(subrender, ref(canvas), ref(scene), 3, ref(tasks)));
+        threads.push_back(thread(subrender, ref(canvas), ref(scene), ref(camera), ref(blocks), ref(queue_lock)));
     }
     for (thread &t : threads) {
         t.join();

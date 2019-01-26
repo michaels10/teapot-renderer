@@ -4,7 +4,7 @@ from render import stl_forge, Canvas, Light, add_light, render
 
 
 vertices, normals = read_stl("stl/teacup-plane.stl")
-scene = stl_forge(vertices, normals)
+scene = stl_forge(vertices, normals, flip_y=True)
 add_light(scene, Light([0,0,-10], 10))
 canvas = Canvas(600, 600)
 m = render(scene, canvas)

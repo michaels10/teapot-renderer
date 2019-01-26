@@ -37,6 +37,8 @@ struct Vec3 {
     float magnitude() const;
     float sum() const;
     float dot(const Vec3 &v) const;
+    Vec3 rotate(int axis, float radians_cw) const;
+    Vec3 rotate(const Vec3& rpy) const;
 };
 
 struct Mat3 {
