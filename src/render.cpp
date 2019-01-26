@@ -131,26 +131,17 @@ void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j
             float fresnel_intensity = 1 - hit.triangle.scattering;
             float reflection_intensity = fresnel(ray, hit);
             Ray reflection_ray = reflect(ray, hit);
-            float refraction_intensity = 1 - reflection_intensity;
-            Ray refraction_ray = refract(ray, hit);
             render_ray(canvas, scene, reflection_ray, i, j, multiplier * reflection_intensity * fresnel_intensity, reflection_count + 1,
                        max_reflections);
-            render_ray(canvas, scene, refraction_ray, i, j, multiplier * refraction_intensity * fresnel_intensity, reflection_count + 1,
-                       max_reflections);
+            /**if (reflection_intensity + EPS < 1.0) {
+                float refraction_intensity = 1 - reflection_intensity;
+                Ray refraction_ray = refract(ray, hit);
+                render_ray(canvas, scene, refraction_ray, i, j, multiplier * refraction_intensity * fresnel_intensity, reflection_count + 1,
+                           max_reflections);
+            }**/
         }
     }
 }
-
-void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, int start_ray_id) {
-    int max_px = min(start_ray_id + PIXEL_BLOCK_SIZE, canvas.width * canvas.height);
-    for (int ray_id = start_ray_id; ray_id < max_px; ray_id++) {
-        int i = ray_id / canvas.width;
-        int j = ray_id % canvas.width;
-        Ray ray = get_initial_ray(canvas, camera, ray_id);
-        render_ray(canvas, scene, ray, i, j, 1, 0, camera.max_reflections);
-    }
-    printf("Finished subrender %d\n", start_ray_id);
-} 
 
 Ray get_initial_ray(const Canvas &canvas, const Camera &camera, int ray_id) {
     int i = ray_id / canvas.width;
@@ -164,25 +155,39 @@ Ray get_initial_ray(const Canvas &canvas, const Camera &camera, int ray_id) {
     return ray;
 }
 
-
+void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<int> &block_queue, mutex &queue_lock) {
+    while (true) {
+        queue_lock.lock();
+        if (block_queue.empty()) {
+            queue_lock.unlock();
+            break;
+        }
+        int start_ray_id = block_queue.front();
+        block_queue.pop();
+        queue_lock.unlock();
+        int max_px = min(start_ray_id + PIXEL_BLOCK_SIZE, canvas.width * canvas.height);
+        for (int ray_id = start_ray_id; ray_id < max_px; ray_id++) {
+            int i = ray_id / canvas.width;
+            int j = ray_id % canvas.width;
+            Ray ray = get_initial_ray(canvas, camera, ray_id);
+            render_ray(canvas, scene, ray, i, j, 1, 0, camera.max_reflections);
+        }
+        printf("Finished subrender %d\n", start_ray_id);
+    }
+}
 
 void render(Canvas &canvas, const Scene &scene, const Camera &camera) {
     int n_workers = max((int)thread::hardware_concurrency() - 1, 1);
-    vector<int> blocks;
+    queue<int> blocks;
+    mutex queue_lock;
     for (int i = 0; i < canvas.width * canvas.height; i += PIXEL_BLOCK_SIZE) {
-        blocks.push_back(i);
+        blocks.push(i);
     }
     vector<thread> threads;
-    int t_i = 0;
-    while (blocks.size() > 0) {
-        int i = blocks.back();
-        blocks.pop_back();
-        if (threads.size() < n_workers) {
-            threads.push_back(thread(subrender, ref(canvas), ref(scene), ref(camera), i));
-        } else {
-            threads[t_i].join();
-            threads[t_i] = thread(subrender, ref(canvas), ref(scene), ref(camera), i);
-            t_i = (t_i + 1) % n_workers;
-        }
+    for (int i = 0; i < n_workers; i++) {
+        threads.push_back(thread(subrender, ref(canvas), ref(scene), ref(camera), ref(blocks), ref(queue_lock)));
+    }
+    for (thread &t : threads) {
+        t.join();
     }
 }

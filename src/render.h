@@ -9,6 +9,7 @@
 #include <queue>
 #include <thread>
 #include <vector>
+#include <mutex>
 using std::abs;
 using std::cout;
 using std::endl;
@@ -20,6 +21,7 @@ using std::sqrt;
 using std::swap;
 using std::thread;
 using std::vector;
+using std::mutex;
 
 // forward declarations
 struct Triangle;
@@ -113,7 +115,7 @@ struct Ray {
 };
 
 void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j, float multiplier, int reflection_count, int max_reflections);
-void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, int start_ray_id);
+void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<int> &block_queue, mutex &queue_lock);
 Ray get_initial_ray(const Canvas &canvas, const Camera &camera, int ray_id);
 void render(Canvas &canvas, const Scene &scene, const Camera &camera);
 #endif
