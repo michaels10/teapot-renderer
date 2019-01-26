@@ -5,8 +5,10 @@ from render import stl_forge, Canvas, Light, add_light, render
 
 vertices, normals = read_stl("stl/teacup-plane.stl")
 scene = stl_forge(vertices, normals, flip_y=True)
-add_light(scene, Light([0,0,-10], 10))
-canvas = Canvas(600, 600)
+add_light(scene, Light([0,10,-10], 1000))
+canvas = Canvas(2048, 2048)
 m = render(scene, canvas)
 
-plt.imsave("render.png", m, cmap='Greys')
+print(m)
+print(m.min(), m.max())
+plt.imsave("render.png", m, cmap='gist_gray')
