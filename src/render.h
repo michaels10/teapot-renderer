@@ -77,7 +77,7 @@ struct Camera {
     float focal_plane_width = 10;
     float focal_plane_height = 10;
     float focal_plane_distance = 10;
-}
+};
 
 struct Scene {
   public:
