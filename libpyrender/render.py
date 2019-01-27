@@ -38,13 +38,13 @@ void __init_canvas(PyCanvas *canvas, int width, int height);
 void render(PyScene* scene, PyCanvas* canvas);
 """)
 
-__c_renderer = ffi.dlopen("./lib/render.so")
+__c_renderer = ffi.dlopen("libpyrender/librender.so")
 #CAM_DIM = (1., .25)
 #C_DIST_EFF = .25
 #C_POS = np.array([0., 0., -25.])
 
 
-def stl_forge(vertices, normals, scattering=0.1, refraction_index=1.5, flip_y=False):
+def stl_forge(vertices, normals, scattering=0.95, refraction_index=15, flip_y=False):
     scene = Scene()
     if flip_y:
       vertices[:,:,1] *= -1

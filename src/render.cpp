@@ -2,11 +2,15 @@
 
 const float PI = 3.1415926;
 const int BLOCK_SIZE = 64;
-const int PIXEL_BLOCK_SIZE = 2*BLOCK_SIZE/sizeof(float);
+const int PIXEL_BLOCK_SIZE = 2 * BLOCK_SIZE / sizeof(float);
 
-Triangle const operator-(const Triangle &tri, const Vec3 &vec) { return Triangle(tri.v0 - vec, tri.v1 - vec, tri.v2 - vec, tri.normal); }
+Triangle const operator-(const Triangle &tri, const Vec3 &vec) {
+    return Triangle(tri.v0 - vec, tri.v1 - vec, tri.v2 - vec, tri.normal);
+}
 
-Triangle const operator+(const Triangle &tri, const Vec3 &vec) { return Triangle(tri.v0 + vec, tri.v1 + vec, tri.v2 + vec, tri.normal); }
+Triangle const operator+(const Triangle &tri, const Vec3 &vec) {
+    return Triangle(tri.v0 + vec, tri.v1 + vec, tri.v2 + vec, tri.normal);
+}
 
 RaycastResult raycast(const Vec3 &origin, const Vec3 &ray, const Triangle &tri) {
     // Now the eq is to check if Apt + Bqt + Crt = D
@@ -108,7 +112,8 @@ Ray refract(const Ray &incident, const RaycastResult &intersect) {
     float c = -intersect.triangle.normal.sum();
     float r = incident.refraction_index / intersect.triangle.refraction_index;
     Vec3 v1 = Vec3(1, 1, 1);
-    Vec3 refraction = (r * v1) + (r * c - sqrt(1 - r * r * (1 - c * c))) * intersect.triangle.normal;
+    Vec3 refraction =
+        (r * v1) + (r * c - sqrt(1 - r * r * (1 - c * c))) * intersect.triangle.normal;
     refract_ray.ray = refraction;
     return refract_ray;
 }
@@ -117,29 +122,33 @@ Ray reflect(const Ray &incident, const RaycastResult &intersect) {
     Ray reflect_ray;
     reflect_ray.refraction_index = incident.refraction_index;
     reflect_ray.origin = intersect.intersect;
-    reflect_ray.ray = incident.ray - 2 * (incident.ray ^ intersect.triangle.normal) * intersect.triangle.normal;
+    reflect_ray.ray =
+        incident.ray - 2 * (incident.ray ^ intersect.triangle.normal) * intersect.triangle.normal;
     return reflect_ray;
 }
 
-void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j, float multiplier, int reflection_count, int max_reflections) {
+void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j, float multiplier,
+                int reflection_count, int max_reflections) {
     if (reflection_count >= max_reflections) {
         return;
     }
     RaycastResult hit = intersect(scene, ray.origin, ray.ray);
     if (hit.hit) {
         canvas[i][j] += local_illuminate(hit, scene) * hit.triangle.scattering;
-        if (hit.triangle.scattering+EPS < 1) {
+        if (hit.triangle.scattering + EPS < 1) {
             float fresnel_intensity = 1 - hit.triangle.scattering;
             float reflection_intensity = fresnel(ray, hit);
             Ray reflection_ray = reflect(ray, hit);
-            render_ray(canvas, scene, reflection_ray, i, j, multiplier * fresnel_intensity*reflection_intensity, reflection_count + 1,
+            render_ray(canvas, scene, reflection_ray, i, j,
+                       multiplier * fresnel_intensity * reflection_intensity, reflection_count + 1,
                        max_reflections);
-            /**if (reflection_intensity + EPS < 1.0) {
+            if (reflection_intensity + EPS < 1.0) {
                 float refraction_intensity = 1 - reflection_intensity;
                 Ray refraction_ray = refract(ray, hit);
-                render_ray(canvas, scene, refraction_ray, i, j, multiplier * refraction_intensity * fresnel_intensity, reflection_count + 1,
-                           max_reflections);
-            }**/
+                render_ray(canvas, scene, refraction_ray, i, j,
+                           multiplier * refraction_intensity * fresnel_intensity,
+                           reflection_count + 1, max_reflections);
+            }
         }
     }
 }
@@ -156,9 +165,11 @@ Ray get_initial_ray(const Canvas &canvas, const Camera &camera, int ray_id) {
     return ray;
 }
 
-void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<int> &block_queue, mutex &queue_lock) {
+void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<int> &block_queue,
+               mutex &queue_lock) {
     while (true) {
         queue_lock.lock();
+        printf("%lu render blocks remaining...\n", block_queue.size());
         if (block_queue.empty()) {
             queue_lock.unlock();
             break;
@@ -185,7 +196,8 @@ void render(Canvas &canvas, const Scene &scene, const Camera &camera) {
     }
     vector<thread> threads;
     for (int i = 0; i < n_workers; i++) {
-        threads.push_back(thread(subrender, ref(canvas), ref(scene), ref(camera), ref(blocks), ref(queue_lock)));
+        threads.push_back(
+            thread(subrender, ref(canvas), ref(scene), ref(camera), ref(blocks), ref(queue_lock)));
     }
     for (thread &t : threads) {
         t.join();
