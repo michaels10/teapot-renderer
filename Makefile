@@ -1,5 +1,5 @@
 CXX = clang++
-CXXFLAGS = -Wall -Werror -g --no-undefined -Ofast
+CXXFLAGS = -Wall -Werror -g --no-undefined -Ofast -march=native
 SHAREDFLAGS = -fPIC -shared
 LD_FLAGS = -lpthread -std=c++17
 
@@ -9,9 +9,9 @@ libpyrender/librender.so: src/render.cpp src/python_interface.cpp src/linalg.cpp
 	$(CXX) $(CXXFLAGS) $(SHAREDFLAGS) -o libpyrender/librender.so src/render.cpp src/python_interface.cpp src/linalg.cpp $(LD_FLAGS)
 
 render-tests: libpyrender/librender.so
-	python3 libpyrender/test_void_teapot_refract_behind.py
-	python3 libpyrender/test_void_teapot_frosted_front.py
-	python3 libpyrender/test.py
+	time python3 libpyrender/test_void_teapot_refract_behind.py
+	time python3 libpyrender/test_void_teapot_frosted_front.py
+	time python3 libpyrender/test.py
 
 
 clean:
