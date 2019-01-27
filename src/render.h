@@ -83,7 +83,7 @@ struct Camera {
     float focal_plane_width = 1;
     float focal_plane_height = 1;
     float focal_plane_distance = 100;
-    int max_reflections = 3;
+    int max_reflections = 256;
 };
 
 struct Scene {

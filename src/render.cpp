@@ -131,7 +131,7 @@ Ray reflect(const Ray &incident, const RaycastResult &intersect) {
 
 void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j, float multiplier,
                 int reflection_count, int max_reflections) {
-    if (reflection_count >= max_reflections) {
+    if (reflection_count >= max_reflections || multiplier < EPS) {
         return;
     }
     RaycastResult hit = intersect(scene, ray.origin, ray.ray);
