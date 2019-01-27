@@ -10,6 +10,6 @@ Current Teapot Refraction render:
 
 Current Frosted Teapot render:
 
-![Current 300px Teacup-Refraction render](images/void_teapot_refract_behind.png)
+![Current 300px Teacup-Refraction render](images/void_teapot_frosted_front.png)
 
 To update these renders, run `make render-test`.
