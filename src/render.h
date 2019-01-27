@@ -2,13 +2,13 @@
 #define RENDER_H
 #include "linalg.h"
 #include "stdio.h"
-#include <string.h>
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <mutex>
 #include <ostream>
 #include <queue>
+#include <string.h>
 #include <thread>
 #include <vector>
 using std::abs;
@@ -48,15 +48,18 @@ struct Triangle {
         scattering = other.scattering;
     }
     Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2) : v0(v0), v1(v1), v2(v2) {
-        normal = ((v1 - v0) % (v2 - v0)).normalize();
+        normal = ((v1 - v0) % (v2 - v1)).normalize();
     };
     Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal)
-        : v0(v0), v1(v1), v2(v2), normal(normal){};
+        : v0(v0), v1(v1), v2(v2) {
+        this->normal = ((v1 - v0) % (v2 - v1)).normalize();
+    };
 
     Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal,
              float refraction_index, float scattering)
-        : v0(v0), v1(v1), v2(v2), normal(normal), refraction_index(refraction_index),
-          scattering(scattering){};
+        : v0(v0), v1(v1), v2(v2), refraction_index(refraction_index), scattering(scattering) {
+        this->normal = ((v1 - v0) % (v2 - v1)).normalize();
+    };
     void operator=(const Triangle &other) {
         v0 = other.v0;
         v1 = other.v1;
@@ -110,7 +113,7 @@ struct Canvas {
 
     Canvas(int rows, int cols) : width(cols), height(rows) {
         buffer = new float[width * height];
-        memset(buffer, 0.0f, width*height*sizeof(float));
+        memset(buffer, 0.0f, width * height * sizeof(float));
     }
     ~Canvas() { delete[] buffer; }
     float *operator[](int row) { return &buffer[row * width]; }

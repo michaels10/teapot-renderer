@@ -39,15 +39,16 @@ void render(PyScene* scene, PyCanvas* canvas);
 """)
 
 __c_renderer = ffi.dlopen("libpyrender/librender.so")
-#CAM_DIM = (1., .25)
-#C_DIST_EFF = .25
-#C_POS = np.array([0., 0., -25.])
+# CAM_DIM = (1., .25)
+# C_DIST_EFF = .25
+# C_POS = np.array([0., 0., -25.])
 
 
-def stl_forge(vertices, normals, scattering=0.95, refraction_index=15, flip_y=False):
-    scene = Scene()
+def stl_forge(vertices, normals, scene=None, scattering=0.95, refraction_index=15, flip_y=False):
+    if scene is None:
+        scene = Scene()
     if flip_y:
-      vertices[:,:,1] *= -1
+        vertices[:, :, 1] *= -1
     for vertices, normal in zip(vertices, normals):
         add_triangle(
             scene,
@@ -83,9 +84,9 @@ def Triangle(vertices, normal, scattering=0.1, refraction_index=1.5):
 def Scene():
     scene = ffi.new("PyScene*")
     __c_renderer.__init_scene(scene)
-    #scene.add_triangle = lambda x: add_triangle(scene, x)
-    #scene.add_light = lambda x: add_light(scene, x)
-    #scene.render = lambda x: render(scene, x)
+    # scene.add_triangle = lambda x: add_triangle(scene, x)
+    # scene.add_light = lambda x: add_light(scene, x)
+    # scene.render = lambda x: render(scene, x)
     return scene
 
 

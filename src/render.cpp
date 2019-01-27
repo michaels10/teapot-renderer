@@ -109,12 +109,14 @@ Ray refract(const Ray &incident, const RaycastResult &intersect) {
     Ray refract_ray;
     refract_ray.refraction_index = intersect.triangle.refraction_index;
     refract_ray.origin = intersect.intersect;
-    float c = -intersect.triangle.normal.sum();
+    float c = intersect.triangle.normal ^ incident.ray;
     float r = incident.refraction_index / intersect.triangle.refraction_index;
-    Vec3 v1 = Vec3(1, 1, 1);
     Vec3 refraction =
-        (r * v1) + (r * c - sqrt(1 - r * r * (1 - c * c))) * intersect.triangle.normal;
+        (r * incident.ray) + (r * c - sqrt(1 - r * r * (1 - c * c))) * intersect.triangle.normal;
     refract_ray.ray = refraction;
+    if ((refract_ray.ray ^ incident.ray) <= 0) {
+        refract_ray.ray = -refract_ray.ray;
+    }
     return refract_ray;
 }
 
@@ -144,8 +146,8 @@ void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j
                        max_reflections);
             if (reflection_intensity + EPS < 1.0) {
                 float refraction_intensity = 1 - reflection_intensity;
-                Ray refraction_ray = refract(ray, hit);
-                render_ray(canvas, scene, refraction_ray, i, j,
+                 Ray refraction_ray = refract(ray, hit);
+                 render_ray(canvas, scene, refraction_ray, i, j,
                            multiplier * refraction_intensity * fresnel_intensity,
                            reflection_count + 1, max_reflections);
             }
@@ -169,7 +171,7 @@ void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<i
                mutex &queue_lock) {
     while (true) {
         queue_lock.lock();
-        printf("%lu render blocks remaining...\n", block_queue.size());
+        //printf("%lu render blocks remaining...\n", block_queue.size());
         if (block_queue.empty()) {
             queue_lock.unlock();
             break;
