@@ -14,6 +14,4 @@ add_light(scene, Light([0,10,-10], 1000))
 canvas = Canvas(300, 300)
 m = render(scene, canvas)
 
-print(m)
-print(m.min(), m.max())
-plt.imsave("images/UtahTeapot-1.33.png", m, cmap='gist_gray')
+plt.imsave("images/void_teapot_frosted_front.png", m, cmap='gist_gray')

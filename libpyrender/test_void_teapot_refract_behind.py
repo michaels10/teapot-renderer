@@ -15,6 +15,5 @@ add_light(scene, Light([0,0,20], 1000))
 canvas = Canvas(300, 300)
 m = render(scene, canvas)
 
-print(m)
-print(m.min(), m.max())
+
 plt.imsave("images/void_teapot_refract_behind.png", m, cmap='gist_gray')
