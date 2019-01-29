@@ -1,12 +1,12 @@
-SQUISHSQUASH_OBJS = squishsquash.o
+RESIZE_SMALL_OBJS = resize_small.o
 
-all : squishsquash lib/render.so
+all : resize_small lib/render.so
 
-squishsquash : $(SQUISHSQUASH_OBJS)
-	clang++ $(SQUISHSQUASH_OBJS) -Wall -Werror -std=c++1y -o squishsquash
+resize_small : $(RESIZE_SMALL_OBJS)
+	clang++ $(RESIZE_SMALL_OBJS) -Wall -Werror -std=c++1y -o resize_small
 
-squishsquash.o : squishsquash.cpp
-	clang++ -Wall -Werror -std=c++1y -c squishsquash.cpp 
+resize_small.o : resize_small.cpp
+	clang++ -Wall -Werror -std=c++1y -c resize_small.cpp 
 
 lib/render.so: src/render.cpp src/python_interface.cpp src/render.h src/python_interface.h
 	clang++ -fPIC -Wall -Werror --no-undefined -Ofast -shared -o lib/render.so src/render.cpp src/python_interface.cpp -std=c++17

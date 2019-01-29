@@ -1,4 +1,4 @@
-#include "squishsquash.h"
+#include "resize_small.h"
 #include "math.h"
 
 using namespace std;
@@ -7,8 +7,8 @@ float sum_range(float *in_arr, const float &x1, const float &y1,
                 const float &x2, const float &y2, const int dim_x,
                 const int dim_y) {
   float ret = 0.0;
-  for (int i = floor(x1); i < ceil(x2); i++) {
-    for (int j = floor(y1); j < ceil(y2); j++) {
+  for (int i = floor(x1); i < 1 + floor(x2); i++) {
+    for (int j = floor(y1); j < 1 + floor(y2); j++) {
       float add = *(in_arr + i * dim_x + j);
       // cout << "add: " << add << endl;
       if (i == floor(x1) && (float)(i) != x1) {
@@ -25,7 +25,7 @@ float sum_range(float *in_arr, const float &x1, const float &y1,
       // cout << i << " " << j << " " << add << endl;
     }
   }
-  ret /= (x2 - x1) * (y2 - y1);
+  ret /= ((x2 - x1) * (y2 - y1));
   return ret;
 }
 
@@ -50,7 +50,25 @@ void squish(float *in_arr, const int &in_x, const int &in_y, const int &out_x,
 
   for (int i = 0; i < out_x; i++) {
     for (int j = 0; j < out_y; j++) {
+      cout << *(kConstBrightnessGradient + (int)(out_arr[i][j] * 70.0)) << " ";
+      // cout << (int)(out_arr[i][j] * 70) << " ";
+    }
+    cout << endl;
+  }
+  cout << endl << endl;
+
+  for (int i = 0; i < out_x; i++) {
+    for (int j = 0; j < out_y; j++) {
       cout << out_arr[i][j] << " ";
+    }
+    cout << endl;
+  }
+
+  cout << endl << endl;
+
+  for (int i = 0; i < out_x; i++) {
+    for (int j = 0; j < out_y; j++) {
+      cout << (int)(out_arr[i][j] * 70) << " ";
     }
     cout << endl;
   }
@@ -60,12 +78,16 @@ int main() {
   int x_in = 10;
   int y_in = 20;
   int x_out = 3;
-  int y_out = 6;
+  int y_out = 4;
   float easy_input[x_in][y_in];
   for (int i = 0; i < x_in; i++) {
     for (int j = 0; j < y_in; j++) {
-      easy_input[i][j] = 1.0;
+      // easy_input[i][j] = (i + j) / 30.0;
+      easy_input [i][j] = 1.0;
+      cout << easy_input[i][j] << " ";
     }
+    cout << endl;
   }
+  cout << endl << endl;
   squish(*easy_input, x_in, y_in, x_out, y_out);
 }
