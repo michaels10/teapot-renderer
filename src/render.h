@@ -24,8 +24,13 @@ using std::swap;
 using std::thread;
 using std::vector;
 
+// enum declarations
+const int AUTO_LINEAR_EXPOSURE = 0;
+const int MANUAL_LINEAR_EXPOSURE = 1;
+
 // forward declarations
 struct Triangle;
+struct Canvas;
 
 Triangle const operator-(const Triangle &tri, const Vec3 &vec);
 Triangle const operator+(const Triangle &tri, const Vec3 &vec);
@@ -83,6 +88,9 @@ struct Camera {
     float focal_plane_width = 1;
     float focal_plane_height = 1;
     float focal_plane_distance = 100;
+    int exposure_mode = AUTO_LINEAR_EXPOSURE;
+    float max_exposure_energy = 1.0f;
+    void expose(Canvas& canvas) const;
     int max_reflections = 256;
 };
 

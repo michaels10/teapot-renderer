@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from stl_lib import read_stl
+from model_lib import read_stl
 from render import stl_forge, Canvas, Light, Triangle, add_light, render, add_triangle, Triangle
 
 
@@ -30,6 +30,7 @@ add_triangle(scene,
 add_light(scene, Light([3,6,6], 100000))
 canvas = Canvas(1000, 1000)
 m = render(scene, canvas)
+print("End render...")
 
 print(m)
 plt.imsave("images/void_teapot_refract_behind.png", m, cmap='gist_gray')

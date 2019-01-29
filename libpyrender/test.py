@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from stl_lib import read_stl
+from model_lib import read_stl
 from render import stl_forge, Canvas, Light, add_light, render
 
 

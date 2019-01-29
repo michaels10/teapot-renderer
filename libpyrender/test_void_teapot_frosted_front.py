@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from stl_lib import read_stl
 from render import stl_forge, Canvas, Light, Triangle, add_light, render, add_triangle, Triangle
+from model_lib import read_stl
 
 
 #vertices, normals = read_stl("stl/teacup-plane.stl")

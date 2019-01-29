@@ -1,5 +1,6 @@
 #include "render.h"
 
+const float inf = std::numeric_limits<float>::infinity();
 const float PI = 3.1415926;
 const int BLOCK_SIZE = 64;
 const int PIXEL_BLOCK_SIZE = 2 * BLOCK_SIZE / sizeof(float);
@@ -10,6 +11,31 @@ Triangle const operator-(const Triangle &tri, const Vec3 &vec) {
 
 Triangle const operator+(const Triangle &tri, const Vec3 &vec) {
     return Triangle(tri.v0 + vec, tri.v1 + vec, tri.v2 + vec, tri.normal);
+}
+
+void Camera::expose(Canvas &canvas) {
+    if (exposure_mode == AUTO_LINEAR_EXPOSURE) {
+        float minv = inf;
+        float maxv = -inf;
+        for (int i = 0; i < canvas.height; i++) {
+            for (int j = 0; j < canvas.height; j++) {
+                minv = min(minv, canvas[i][j]);
+                maxv = min(maxv, canvas[i][j]);
+            }
+        }
+        float scale = maxv-minv;
+        for (int i = 0; i < canvas.height; i++) {
+            for (int j = 0; j < canvas.height; j++) {
+                canvas[i][j] = (canvas[i][j] -minv)/scale;
+            }
+        }
+    }else{
+        for (int i = 0; i < canvas.height; i++) {
+            for (int j = 0; j < canvas.height; j++) {
+                canvas[i][j] = canvas[i][j]/max_exposure_energy;
+            }
+        }
+    }
 }
 
 RaycastResult raycast(const Vec3 &origin, const Vec3 &ray, const Triangle &tri) {
@@ -146,8 +172,8 @@ void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j
                        max_reflections);
             if (reflection_intensity + EPS < 1.0) {
                 float refraction_intensity = 1 - reflection_intensity;
-                 Ray refraction_ray = refract(ray, hit);
-                 render_ray(canvas, scene, refraction_ray, i, j,
+                Ray refraction_ray = refract(ray, hit);
+                render_ray(canvas, scene, refraction_ray, i, j,
                            multiplier * refraction_intensity * fresnel_intensity,
                            reflection_count + 1, max_reflections);
             }
@@ -171,7 +197,7 @@ void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<i
                mutex &queue_lock) {
     while (true) {
         queue_lock.lock();
-        //printf("%lu render blocks remaining...\n", block_queue.size());
+        // printf("%lu render blocks remaining...\n", block_queue.size());
         if (block_queue.empty()) {
             queue_lock.unlock();
             break;
@@ -204,4 +230,5 @@ void render(Canvas &canvas, const Scene &scene, const Camera &camera) {
     for (thread &t : threads) {
         t.join();
     }
+    camera.expose(canvas);
 }
