@@ -1,16 +1,24 @@
-RESIZE_SMALL_OBJS = resize_small.o
+CXX = clang++
+CXXFLAGS = -Wall -Werror -g --no-undefined -Ofast -march=native
+SHAREDFLAGS = -fPIC -shared
+LD_FLAGS = -lpthread -std=c++17
 
-all : resize_small lib/render.so
+CACHE_LINE_SIZE = $(cat /sys/devices/system/cpu/cpu0/cache/index0/coherency_line_size)
 
-resize_small : $(RESIZE_SMALL_OBJS)
-	clang++ $(RESIZE_SMALL_OBJS) -Wall -Werror -std=c++1y -o resize_small
+src/resize_small : src/resize_small.o
+	$(CXX) src/resize_small.o $(CXXFLAGS) -o src/resize_small $(LD_FLAGS)
 
-resize_small.o : resize_small.cpp
-	clang++ -Wall -Werror -std=c++1y -c resize_small.cpp 
+src/resize_small.o : resize_small.cpp
+	$(CXX) $(CXXFLAGS) $(SHAREDFLAGS) -c src/resize_small.cpp  $(LD_FLAGS)
 
-lib/render.so: src/render.cpp src/python_interface.cpp src/render.h src/python_interface.h
-	clang++ -fPIC -Wall -Werror --no-undefined -Ofast -shared -o lib/render.so src/render.cpp src/python_interface.cpp -std=c++17
+libpyrender/librender.so: src/render.cpp src/python_interface.cpp src/linalg.cpp src/render.h src/python_interface.h src/linalg.h 
+	$(CXX) $(CXXFLAGS) $(SHAREDFLAGS) -o libpyrender/librender.so src/render.cpp src/python_interface.cpp src/linalg.cpp $(LD_FLAGS)
+
+render-tests: libpyrender/librender.so
+	time python3 libpyrender/test_void_teapot_refract_behind.py
+	time python3 libpyrender/test_void_teapot_frosted_front.py
+	time python3 libpyrender/test.py
+
 
 clean:
-	rm lib/render.so
-	-rm -f *.o .
+	rm libpyrender/librender.so
