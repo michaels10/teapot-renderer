@@ -10,4 +10,4 @@ add_light(scene, Light([0,10,-10], 1000))
 canvas = Canvas(300, 300)
 m = render(scene, canvas)
 
-plt.imsave("images/teacup-plane.png", m, cmap='gist_gray')
+plt.imsave("images/plane_teacup_front.png", m, cmap='gist_gray')

@@ -1,4 +1,5 @@
 #include "render.h"
+#include "octree.h"
 
 const float inf = std::numeric_limits<float>::infinity();
 const float PI = 3.1415926;
@@ -13,26 +14,38 @@ Triangle const operator+(const Triangle &tri, const Vec3 &vec) {
     return Triangle(tri.v0 + vec, tri.v1 + vec, tri.v2 + vec, tri.normal);
 }
 
-void Camera::expose(Canvas &canvas) {
-    if (exposure_mode == AUTO_LINEAR_EXPOSURE) {
-        float minv = inf;
-        float maxv = -inf;
+BoundingBox Triangle::get_bounds() const {
+    BoundingBox box;
+    box.min_xyz.x = min(min(v0.x, v1.x), v2.x);
+    box.min_xyz.y = min(min(v0.y, v1.y), v2.y);
+    box.min_xyz.z = min(min(v0.z, v1.z), v2.z);
+    box.max_xyz.x = max(max(v0.x, v1.x), v2.x);
+    box.max_xyz.y = max(max(v0.y, v1.y), v2.y);
+    box.max_xyz.z = max(max(v0.z, v1.z), v2.z);
+    return box;
+}
+
+void Camera::expose(Canvas &canvas) const {
+    float max_exposure = max_exposure_energy;
+    switch (exposure_mode) {
+    case AUTO_LINEAR_EXPOSURE: {
+        max_exposure = -inf;
         for (int i = 0; i < canvas.height; i++) {
             for (int j = 0; j < canvas.height; j++) {
-                minv = min(minv, canvas[i][j]);
-                maxv = min(maxv, canvas[i][j]);
+                max_exposure = max(max_exposure, canvas[i][j]);
             }
         }
-        float scale = maxv-minv;
-        for (int i = 0; i < canvas.height; i++) {
-            for (int j = 0; j < canvas.height; j++) {
-                canvas[i][j] = (canvas[i][j] -minv)/scale;
-            }
-        }
-    }else{
-        for (int i = 0; i < canvas.height; i++) {
-            for (int j = 0; j < canvas.height; j++) {
-                canvas[i][j] = canvas[i][j]/max_exposure_energy;
+        break;
+    }
+    case MANUAL_LINEAR_EXPOSURE:
+        break;
+    }
+    for (int i = 0; i < canvas.height; i++) {
+        for (int j = 0; j < canvas.height; j++) {
+            printf("AE %f ME %f\n",canvas[i][j], max_exposure);
+            canvas[i][j] = canvas[i][j] / max_exposure;
+            if (canvas[i][j] > 1){
+                canvas[i][j] = 1;
             }
         }
     }
@@ -137,8 +150,7 @@ Ray refract(const Ray &incident, const RaycastResult &intersect) {
     refract_ray.origin = intersect.intersect;
     float c = intersect.triangle.normal ^ incident.ray;
     float r = incident.refraction_index / intersect.triangle.refraction_index;
-    Vec3 refraction =
-        (r * incident.ray) + (r * c - sqrt(1 - r * r * (1 - c * c))) * intersect.triangle.normal;
+    Vec3 refraction = (r * incident.ray) + (r * c - sqrt(1 - r * r * (1 - c * c))) * intersect.triangle.normal;
     refract_ray.ray = refraction;
     if ((refract_ray.ray ^ incident.ray) <= 0) {
         refract_ray.ray = -refract_ray.ray;
@@ -150,8 +162,7 @@ Ray reflect(const Ray &incident, const RaycastResult &intersect) {
     Ray reflect_ray;
     reflect_ray.refraction_index = incident.refraction_index;
     reflect_ray.origin = intersect.intersect;
-    reflect_ray.ray =
-        incident.ray - 2 * (incident.ray ^ intersect.triangle.normal) * intersect.triangle.normal;
+    reflect_ray.ray = incident.ray - 2 * (incident.ray ^ intersect.triangle.normal) * intersect.triangle.normal;
     return reflect_ray;
 }
 
@@ -167,14 +178,12 @@ void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j
             float fresnel_intensity = 1 - hit.triangle.scattering;
             float reflection_intensity = fresnel(ray, hit);
             Ray reflection_ray = reflect(ray, hit);
-            render_ray(canvas, scene, reflection_ray, i, j,
-                       multiplier * fresnel_intensity * reflection_intensity, reflection_count + 1,
-                       max_reflections);
+            render_ray(canvas, scene, reflection_ray, i, j, multiplier * fresnel_intensity * reflection_intensity,
+                       reflection_count + 1, max_reflections);
             if (reflection_intensity + EPS < 1.0) {
                 float refraction_intensity = 1 - reflection_intensity;
                 Ray refraction_ray = refract(ray, hit);
-                render_ray(canvas, scene, refraction_ray, i, j,
-                           multiplier * refraction_intensity * fresnel_intensity,
+                render_ray(canvas, scene, refraction_ray, i, j, multiplier * refraction_intensity * fresnel_intensity,
                            reflection_count + 1, max_reflections);
             }
         }
@@ -186,15 +195,16 @@ Ray get_initial_ray(const Canvas &canvas, const Camera &camera, int ray_id) {
     int j = ray_id % canvas.width;
     Ray ray;
     ray.origin = camera.loc;
-    float scaled_x = (j - canvas.width / 2.0) / 2.0 * camera.focal_plane_width;
-    float scaled_y = (canvas.height / 2.0 - i) / 2.0 * camera.focal_plane_height;
+    int fold_i = canvas.height / 2.0;
+    int fold_j = canvas.width / 2.0;
+    float scaled_x = (j - fold_j) / canvas.width * camera.focal_plane_width;
+    float scaled_y = (fold_i - i) / canvas.height * camera.focal_plane_height;
     ray.ray = Vec3(scaled_x, scaled_y, camera.focal_plane_distance).normalize();
     ray.ray = ray.ray.rotate(camera.rotation);
     return ray;
 }
 
-void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<int> &block_queue,
-               mutex &queue_lock) {
+void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<int> &block_queue, mutex &queue_lock) {
     while (true) {
         queue_lock.lock();
         // printf("%lu render blocks remaining...\n", block_queue.size());
@@ -217,6 +227,7 @@ void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<i
 
 void render(Canvas &canvas, const Scene &scene, const Camera &camera) {
     int n_workers = max((int)thread::hardware_concurrency() - 1, 1);
+    Octree octo(scene);
     queue<int> blocks;
     mutex queue_lock;
     for (int i = 0; i < canvas.width * canvas.height; i += PIXEL_BLOCK_SIZE) {
@@ -224,8 +235,7 @@ void render(Canvas &canvas, const Scene &scene, const Camera &camera) {
     }
     vector<thread> threads;
     for (int i = 0; i < n_workers; i++) {
-        threads.push_back(
-            thread(subrender, ref(canvas), ref(scene), ref(camera), ref(blocks), ref(queue_lock)));
+        threads.push_back(thread(subrender, ref(canvas), ref(scene), ref(camera), ref(blocks), ref(queue_lock)));
     }
     for (thread &t : threads) {
         t.join();

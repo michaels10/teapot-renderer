@@ -2,6 +2,7 @@
 #define RENDER_H
 #include "linalg.h"
 #include "stdio.h"
+#include "octree.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -31,6 +32,7 @@ const int MANUAL_LINEAR_EXPOSURE = 1;
 // forward declarations
 struct Triangle;
 struct Canvas;
+struct BoundingBox;
 
 Triangle const operator-(const Triangle &tri, const Vec3 &vec);
 Triangle const operator+(const Triangle &tri, const Vec3 &vec);
@@ -73,6 +75,7 @@ struct Triangle {
         refraction_index = other.refraction_index;
         scattering = other.scattering;
     }
+    BoundingBox get_bounds() const;
 };
 
 struct Light {
@@ -85,13 +88,24 @@ struct Camera {
   public:
     Vec3 loc = Vec3(0, 4, -10);
     Vec3 rotation; // = Vec3(-0.523599, 0, 0); // PYR, default is looking down Z+
+    float focal_plane_distance = 100;
     float focal_plane_width = 1;
     float focal_plane_height = 1;
-    float focal_plane_distance = 100;
-    int exposure_mode = AUTO_LINEAR_EXPOSURE;
-    float max_exposure_energy = 1.0f;
-    void expose(Canvas& canvas) const;
-    int max_reflections = 256;
+    int exposure_mode = MANUAL_LINEAR_EXPOSURE;
+    float max_exposure_energy = 55.0f;
+    void expose(Canvas &canvas) const;
+    Camera(){};
+    Camera(float focal_distance, float width, float height, float max_exposure)
+        : focal_plane_distance(focal_distance), focal_plane_width(width),
+          focal_plane_height(height), max_exposure_energy(max_exposure) {
+        exposure_mode = MANUAL_LINEAR_EXPOSURE;
+    }
+    Camera(float focal_distance, float width, float height)
+        : focal_plane_distance(focal_distance), focal_plane_width(width),
+          focal_plane_height(height) {
+        exposure_mode = AUTO_LINEAR_EXPOSURE;
+    }
+    int max_reflections = 8;
 };
 
 struct Scene {
