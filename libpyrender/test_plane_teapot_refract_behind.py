@@ -28,7 +28,7 @@ add_triangle(scene,
 )
 
 add_light(scene, Light([3,6,6], 100000))
-canvas = Canvas(300, 300)
+canvas = Canvas(1000, 1000)
 m = render(scene, canvas)
 print("End render...")
 

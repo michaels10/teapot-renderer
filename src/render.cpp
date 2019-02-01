@@ -42,9 +42,8 @@ void Camera::expose(Canvas &canvas) const {
     }
     for (int i = 0; i < canvas.height; i++) {
         for (int j = 0; j < canvas.height; j++) {
-            printf("AE %f ME %f\n",canvas[i][j], max_exposure);
             canvas[i][j] = canvas[i][j] / max_exposure;
-            if (canvas[i][j] > 1){
+            if (canvas[i][j] > 1) {
                 canvas[i][j] = 1;
             }
         }
@@ -197,8 +196,8 @@ Ray get_initial_ray(const Canvas &canvas, const Camera &camera, int ray_id) {
     ray.origin = camera.loc;
     int fold_i = canvas.height / 2.0;
     int fold_j = canvas.width / 2.0;
-    float scaled_x = (j - fold_j) / canvas.width * camera.focal_plane_width;
-    float scaled_y = (fold_i - i) / canvas.height * camera.focal_plane_height;
+    float scaled_x = (j - fold_j) * camera.focal_plane_width / canvas.width;
+    float scaled_y = (fold_i - i) * camera.focal_plane_height / canvas.height;
     ray.ray = Vec3(scaled_x, scaled_y, camera.focal_plane_distance).normalize();
     ray.ray = ray.ray.rotate(camera.rotation);
     return ray;
