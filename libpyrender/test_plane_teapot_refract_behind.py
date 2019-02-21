@@ -30,7 +30,5 @@ add_triangle(scene,
 add_light(scene, Light([3,6,6], 100000))
 canvas = Canvas(1000, 1000)
 m = render(scene, canvas)
-print("End render...")
 
-print(m)
 plt.imsave("images/plane_teapot_refract_behind.png", m, cmap='gist_gray')

@@ -85,37 +85,74 @@ RaycastResult raycast(const Vec3 &origin, const Vec3 &ray, const Triangle &tri) 
     return RaycastResult(intersect + tri.v0, t, tri);
 }
 
-RaycastResult intersect(const Scene &scene, const Vec3 &origin, const Vec3 &ray) {
+RaycastResult intersect(const Scene &scene, const Octree &octo, const Vec3 &origin, const Vec3 &ray) {
     RaycastResult best_raycast(false);
-    for (const Triangle &tri : scene.geometry) {
-        RaycastResult res = raycast(origin, ray, tri);
-        if (res.hit && (res.distance < best_raycast.distance || !best_raycast.hit)) {
-            best_raycast = res;
+    Vec3 point = origin;
+    if (!octo.in_bounds(point)) {
+        float t = octo.root->planes_intersection(origin, ray);
+        if (t <= 0) {
+            return best_raycast;
+        }
+        point = point + (ray * t);
+    }
+    OctreeLookup lookup = octo.get_new_triangles(point);
+    while (octo.in_bounds(point) && lookup.is_valid) {
+        for (auto block : lookup.path) {
+            for (const Triangle *tri : *block) {
+                RaycastResult res = raycast(origin, ray, *tri);
+                if (res.hit && (res.distance < best_raycast.distance || !best_raycast.hit)) {
+                    best_raycast = res;
+                }
+            }
+        }
+        if (best_raycast.hit) {
+            return best_raycast;
+        }
+
+        OctreeNode *last_node = lookup.node;
+        while (lookup.node == last_node) {
+            point = point + (ray * lookup.node->radial * 2);
+            lookup = octo.get_new_triangles(point, lookup.node);
         }
     }
     return best_raycast;
 }
 
-bool any_intersect(const Scene &scene, const Vec3 &origin, const Vec3 &ray) {
+bool any_intersect(const Scene &scene, const Octree &octo, const Vec3 &origin, const Vec3 &ray, float t_max) {
     // fudge the origin a little bit to prevent same-hit intersection
     Vec3 new_origin = origin + (0.01 * ray);
-    for (const Triangle &tri : scene.geometry) {
-        RaycastResult res = raycast(new_origin, ray, tri);
-        if (res.hit) {
-            return true;
+    Vec3 point = new_origin;
+    if (!octo.in_bounds(point)) {
+        float t = octo.root->planes_intersection(origin, ray);
+        if (t <= 0 || t >= t_max) {
+            return false;
         }
+        point = point + (ray * t);
+    }
+    OctreeLookup lookup = octo.get_new_triangles(point);
+    while (octo.in_bounds(point) && lookup.is_valid) {
+        for (auto block : lookup.path) {
+            for (const Triangle *tri : *block) {
+                RaycastResult res = raycast(new_origin, ray, *tri);
+                if (res.hit && res.distance <= t_max) {
+                    return true;
+                }
+            }
+        }
+        point = point + ray;
+        lookup = octo.get_new_triangles(point, lookup.node);
     }
     return false;
 }
 
-float local_illuminate(const RaycastResult &hit, const Scene &scene) {
+float local_illuminate(const RaycastResult &hit, const Scene &scene, const Octree &octo) {
     // distance falloff only
     float total_illumination = 0;
     for (const Light &light : scene.lights) {
         Vec3 shadow_ray = (light.loc - hit.intersect);
         float dist = shadow_ray.magnitude();
         shadow_ray = shadow_ray.normalize();
-        if (!any_intersect(scene, hit.intersect, shadow_ray)) {
+        if (!any_intersect(scene, octo, hit.intersect, shadow_ray, dist)) {
             float intensity = light.intensity / (4 * PI * dist * dist);
             total_illumination += intensity;
         }
@@ -165,25 +202,26 @@ Ray reflect(const Ray &incident, const RaycastResult &intersect) {
     return reflect_ray;
 }
 
-void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j, float multiplier,
+void render_ray(Canvas &canvas, const Scene &scene, const Octree &octo, const Ray &ray, int i, int j, float multiplier,
                 int reflection_count, int max_reflections) {
     if (reflection_count >= max_reflections || multiplier < EPS) {
         return;
     }
-    RaycastResult hit = intersect(scene, ray.origin, ray.ray);
+    RaycastResult hit = intersect(scene, octo, ray.origin, ray.ray);
     if (hit.hit) {
-        canvas[i][j] += local_illuminate(hit, scene) * hit.triangle.scattering;
+        canvas[i][j] += local_illuminate(hit, scene, octo) * hit.triangle.scattering;
         if (hit.triangle.scattering + EPS < 1) {
             float fresnel_intensity = 1 - hit.triangle.scattering;
             float reflection_intensity = fresnel(ray, hit);
             Ray reflection_ray = reflect(ray, hit);
-            render_ray(canvas, scene, reflection_ray, i, j, multiplier * fresnel_intensity * reflection_intensity,
+            render_ray(canvas, scene, octo, reflection_ray, i, j, multiplier * fresnel_intensity * reflection_intensity,
                        reflection_count + 1, max_reflections);
             if (reflection_intensity + EPS < 1.0) {
                 float refraction_intensity = 1 - reflection_intensity;
                 Ray refraction_ray = refract(ray, hit);
-                render_ray(canvas, scene, refraction_ray, i, j, multiplier * refraction_intensity * fresnel_intensity,
-                           reflection_count + 1, max_reflections);
+                render_ray(canvas, scene, octo, refraction_ray, i, j,
+                           multiplier * refraction_intensity * fresnel_intensity, reflection_count + 1,
+                           max_reflections);
             }
         }
     }
@@ -203,7 +241,8 @@ Ray get_initial_ray(const Canvas &canvas, const Camera &camera, int ray_id) {
     return ray;
 }
 
-void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<int> &block_queue, mutex &queue_lock) {
+void subrender(Canvas &canvas, const Scene &scene, const Octree &octo, const Camera &camera, queue<int> &block_queue,
+               mutex &queue_lock) {
     while (true) {
         queue_lock.lock();
         // printf("%lu render blocks remaining...\n", block_queue.size());
@@ -219,7 +258,7 @@ void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<i
             int i = ray_id / canvas.width;
             int j = ray_id % canvas.width;
             Ray ray = get_initial_ray(canvas, camera, ray_id);
-            render_ray(canvas, scene, ray, i, j, 1, 0, camera.max_reflections);
+            render_ray(canvas, scene, octo, ray, i, j, 1, 0, camera.max_reflections);
         }
     }
 }
@@ -234,7 +273,8 @@ void render(Canvas &canvas, const Scene &scene, const Camera &camera) {
     }
     vector<thread> threads;
     for (int i = 0; i < n_workers; i++) {
-        threads.push_back(thread(subrender, ref(canvas), ref(scene), ref(camera), ref(blocks), ref(queue_lock)));
+        threads.push_back(
+            thread(subrender, ref(canvas), ref(scene), ref(octo), ref(camera), ref(blocks), ref(queue_lock)));
     }
     for (thread &t : threads) {
         t.join();

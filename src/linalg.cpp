@@ -24,7 +24,7 @@ Vec3 Vec3::operator*(const Vec3 &v) const { return Vec3(x * v.x, y * v.y, z * v.
 Vec3 Vec3::operator+(const Vec3 &v) const { return Vec3(x + v.x, y + v.y, z + v.z); }
 
 // Vector subtraction
-Vec3 Vec3::operator-(const Vec3 &v) const { return (*this) + (-v); }
+Vec3 Vec3::operator-(const Vec3 &v) const { return Vec3(x - v.x, y - v.y, z - v.z); }
 
 // This does the dot product of two vectors.
 float Vec3::operator^(const Vec3 &v) const { return x * v.x + y * v.y + z * v.z; }
@@ -88,6 +88,8 @@ Vec3 const operator*(const Vec3 &v, float s) { return Vec3(v.x * s, v.y * s, v.z
 Vec3 const operator*(float s, const Vec3 &v) { return v * s; }
 
 Vec3 const operator/(const Vec3 &v, float s) { return Vec3(v.x / s, v.y / s, v.z / s); }
+
+Vec3 const operator/(float s, const Vec3 &v) { return Vec3(s / v.x, s / v.y, s / v.z); }
 
 /*********************** Matrix operations *************************************/
 

@@ -9,6 +9,7 @@ struct Vec3;
 Vec3 const operator*(const Vec3 &v, float s);
 Vec3 const operator*(float s, const Vec3 &v);
 Vec3 const operator/(const Vec3 &v, float s);
+Vec3 const operator/(float s, const Vec3 &v);
 
 struct Vec3 {
   public:

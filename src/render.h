@@ -33,6 +33,7 @@ const int MANUAL_LINEAR_EXPOSURE = 1;
 struct Triangle;
 struct Canvas;
 struct BoundingBox;
+class Octree;
 
 Triangle const operator-(const Triangle &tri, const Vec3 &vec);
 Triangle const operator+(const Triangle &tri, const Vec3 &vec);
@@ -148,10 +149,9 @@ struct Ray {
     float refraction_index = 1;
 };
 
-void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j, float multiplier,
+void render_ray(Canvas &canvas, const Scene &scene, const Octree& octo, const Ray &ray, int i, int j, float multiplier,
                 int reflection_count, int max_reflections);
-void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<int> &block_queue,
-               mutex &queue_lock);
+void subrender(Canvas &canvas, const Scene &scene, const Octree &octo, const Camera &camera, queue<int> &block_queue, mutex &queue_lock);
 Ray get_initial_ray(const Canvas &canvas, const Camera &camera, int ray_id);
 void render(Canvas &canvas, const Scene &scene, const Camera &camera);
 #endif
