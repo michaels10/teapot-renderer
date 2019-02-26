@@ -58,15 +58,17 @@ Octree::Octree(const Scene &scene) {
     root = new OctreeNode(0, 0, 0); // The center - both of these should really be computed from the scene.
     root->expand_children(octree_dim / 2, 1, 5);
 
-    for (int i = 0; i < scene.geometry.size(); i++) {
-        OctreeNode *root = nullptr;
-        Triangle const *tri = &(scene.geometry[i]);
-        BoundingBox box = tri->get_bounds();
-        for (Vec3 &vec : box.get_corners()) {
-            OctreeNode *node = get_node(vec);
-            root = get_lowest_common_ancestor(root, node);
-        }
-        root->triangles.push_back(tri);
+    for (const Mesh& mesh: scene.geometry) {
+        for (int i = 0; i < mesh.tris.size(); i++) {
+            OctreeNode *root = nullptr;
+            RefTriangle const *ref_tri = &(mesh.tris[i]);
+            BoundingBox box = mesh.get_triangle(*ref_tri).get_bounds();
+            for (Vec3 &vec : box.get_corners()) {
+                OctreeNode *node = get_node(vec);
+                root = get_lowest_common_ancestor(root, node);
+            }
+            root->triangles.push_back(ref_tri);
+	}
     }
 }
 Octree::~Octree() { delete root; }

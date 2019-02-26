@@ -30,58 +30,85 @@ const int AUTO_LINEAR_EXPOSURE = 0;
 const int MANUAL_LINEAR_EXPOSURE = 1;
 
 // forward declarations
-struct Triangle;
 struct Canvas;
 struct BoundingBox;
 
-Triangle const operator-(const Triangle &tri, const Vec3 &vec);
-Triangle const operator+(const Triangle &tri, const Vec3 &vec);
+struct RefTriangle {
+  public:
+    int v0, v1, v2, normal;
+    RefTriangle() {}
+    RefTriangle(int v0, int v1, int v2, int normal): v0(v0), v1(v1), v2(v2), normal(normal){}
+};
 
 struct Triangle {
   public:
     Vec3 v0, v1, v2, normal;
-    float refraction_index = 1.5;
-    float scattering = 0.1; // opacity
-    /**
-     * Create a triangle using CW winding order.
-     **/
+    float ior, scattering;
     Triangle() {}
-    Triangle(const Triangle &other) {
-        v0 = other.v0;
-        v1 = other.v1;
-        v2 = other.v2;
-        normal = other.normal;
-        refraction_index = other.refraction_index;
-        scattering = other.scattering;
+    Triangle(Vec3 v0, Vec3 v1, Vec3 v2, Vec3 normal, float ior, float scattering): v0(v0), v1(v1), v2(v2), normal(normal) {;
+   	this->ior = ior; 
+   	this->scattering = scattering; 
     }
-    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2) : v0(v0), v1(v1), v2(v2) {
-        normal = ((v1 - v0) % (v2 - v1)).normalize();
-    };
-    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal)
-        : v0(v0), v1(v1), v2(v2) {
-        this->normal = ((v1 - v0) % (v2 - v1)).normalize();
-    };
 
-    Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2, const Vec3 &normal,
-             float refraction_index, float scattering)
-        : v0(v0), v1(v1), v2(v2), refraction_index(refraction_index), scattering(scattering) {
-        this->normal = ((v1 - v0) % (v2 - v1)).normalize();
-    };
-    void operator=(const Triangle &other) {
-        v0 = other.v0;
-        v1 = other.v1;
-        v2 = other.v2;
-        normal = other.normal;
-        refraction_index = other.refraction_index;
-        scattering = other.scattering;
+    Triangle(const Triangle& triangle) {
+        v0 = triangle.v0;
+        v1 = triangle.v1;
+        v2 = triangle.v2;
+        normal = triangle.normal;
+        ior = triangle.ior;
+        scattering = triangle.scattering;
     }
+
     BoundingBox get_bounds() const;
+};
+
+struct Mesh {
+  public:
+    vector<Vec3> verts;
+    vector<Vec3> normals;
+    vector<RefTriangle> tris;
+    float ior = 1.5;
+    float scattering = .95;
+    Mesh(float * verts, size_t v_len, int * tris, size_t t_len, float scattering, float ior) {
+	this->verts = vector<Vec3>();
+	this->normals = vector<Vec3>();
+	this->tris = vector<RefTriangle>();
+
+	for (size_t i = 0; i < v_len*3; i += 3) {
+	    Vec3 cur_vert = Vec3(verts[i], verts[i+1], verts[i+2]);
+	    this->verts.push_back(cur_vert);
+	}
+	for (size_t i = 0; i < t_len*3; i += 3) {
+	    RefTriangle cur_tri = RefTriangle(tris[i], tris[i+1], tris[i+2], i);
+	    printf("%d, %d, %d", cur_tri.v0, cur_tri.v1, cur_tri.v2);
+	    this->tris.push_back(cur_tri);
+
+	    Vec3 v0 = verts[cur_tri.v0];
+	    Vec3 v1 = verts[cur_tri.v1];
+	    Vec3 v2 = verts[cur_tri.v2];
+            Vec3 cur_normal = (v1 - v0) % (v2 - v0);
+	    this->normals.push_back(cur_normal);
+	}
+	this->scattering = scattering;
+	this->ior = ior;
+    }
+
+    Triangle get_triangle(RefTriangle tri) const{
+        return Triangle(verts[tri.v0], verts[tri.v1], verts[tri.v2], normals[tri.normal], ior, scattering);
+    }
+
 };
 
 struct Light {
   public:
     Vec3 loc;
     float intensity = 1.0;
+};
+
+struct Scene {
+  public:
+    vector<Mesh> geometry;
+    vector<Light> lights;
 };
 
 struct Camera {
@@ -106,12 +133,6 @@ struct Camera {
         exposure_mode = AUTO_LINEAR_EXPOSURE;
     }
     int max_reflections = 8;
-};
-
-struct Scene {
-  public:
-    vector<Triangle> geometry;
-    vector<Light> lights;
 };
 
 struct RaycastResult {
@@ -145,13 +166,16 @@ struct Ray {
   public:
     Vec3 origin;
     Vec3 ray;
-    float refraction_index = 1;
+    float ior = 1;
 };
 
 void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j, float multiplier,
                 int reflection_count, int max_reflections);
+
 void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<int> &block_queue,
                mutex &queue_lock);
+
 Ray get_initial_ray(const Canvas &canvas, const Camera &camera, int ray_id);
+
 void render(Canvas &canvas, const Scene &scene, const Camera &camera);
 #endif

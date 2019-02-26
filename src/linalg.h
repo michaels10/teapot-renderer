@@ -13,7 +13,6 @@ Vec3 const operator/(const Vec3 &v, float s);
 struct Vec3 {
   public:
     float x, y, z;
-    bool valid = true;
 
     Vec3(const Vec3 &other);
     Vec3(float x = 0, float y = 0, float z = 0) : x(x), y(y), z(z){};

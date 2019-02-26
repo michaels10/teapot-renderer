@@ -7,6 +7,7 @@ using std::vector;
 class OctreeNode;
 struct BoundingBox;
 struct Triangle;
+struct RefTriangle;
 struct Scene;
 
 class Octree {
@@ -39,7 +40,7 @@ class OctreeNode {
     };
     ~OctreeNode();
     void expand_children(float node_size, int depth, int max_depth);
-    vector<const Triangle *> triangles;
+    vector<const RefTriangle *> triangles;
 };
 
 struct BoundingBox {
