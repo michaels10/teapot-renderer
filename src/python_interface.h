@@ -24,10 +24,10 @@ typedef struct PyScene {
 } PyScene;
 
 extern "C" void add_mesh(PyScene * scene, float *vert, size_t vert_len,
-		int *tris, size_t tris_len, float scttrng, float refraction, float ior);
+		int *tris, size_t tris_len, float scattering, float ior);
 extern "C" void add_light(PyScene *scene, PyLight *pylight);
 extern "C" void __init_scene(PyScene *scene);
 extern "C" void __init_canvas(PyCanvas *canvas, int width, int height);
-extern "C" void render(PyScene* scene, int res_x, int res_y);
+extern "C" void render(PyScene* scene, PyCanvas* canvas);
 
 #endif
