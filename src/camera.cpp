@@ -1,4 +1,6 @@
-#include "camera.h"
+#include "scene.h"
+
+const float inf = std::numeric_limits<float>::infinity();
 
 void Camera::expose(Canvas &canvas) {
     float max_exposure = max_exposure_energy;
@@ -23,7 +25,7 @@ void Camera::expose(Canvas &canvas) {
     }
 }
 
-Ray Camera::get_initial_ray(int i, int j) const {
+Ray Camera::get_initial_ray(int i, int j, const Canvas& canvas) const {
     Ray ray;
     ray.origin = loc;
     int fold_i = canvas.height / 2.0;
