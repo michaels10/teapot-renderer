@@ -38,10 +38,10 @@ def read_obj(f_name, ccw_winding=True):
             meshes[-1].faces += [[get_vert(face) - 1 for face in split_line]]
 
     for mesh in meshes:
-        mesh.verts = np.array(mesh.verts, dtype = np.single)
+        mesh.verts = np.array(mesh.verts, dtype = np.float32)
         # mesh.normals = np.copy(mesh.verts)
-        mesh.faces = np.array(mesh.faces, dtype = np.intc)
-    print(len(meshes))
+        mesh.faces = np.array(mesh.faces, dtype = np.int32)
+    #print(len(meshes))
     return meshes 
 
 def read_stl(f_name):
