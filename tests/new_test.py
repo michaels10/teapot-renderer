@@ -12,9 +12,11 @@ mesh_list = read_obj("models/teacup.obj")
 scene = Scene()
 for mesh in mesh_list:
     Mesh(scene, mesh.verts, mesh.faces, flip_y = False, scattering= .7)
+print(len(mesh_list))
 
-add_light(scene, Light([0,10,-10], 1000))
-canvas = Canvas(100, 100)
+
+add_light(scene, Light([0,10,0], 10000))
+canvas = Canvas(300, 300)
 m = render(scene, canvas)
 
 plt.imsave("images/plane_teacup_front.png", m, cmap='gist_gray')
