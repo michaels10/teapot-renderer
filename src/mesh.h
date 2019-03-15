@@ -1,8 +1,9 @@
 #ifndef MESH_H
 #define MESH_H 
-#include "render.h"
+#include "scene.h"
 #include "linalg.h"
 #include <vector>
+
 using namespace std;
 
 // forward declarations

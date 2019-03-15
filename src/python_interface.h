@@ -1,6 +1,6 @@
 #ifndef PYTHON_INTERF_H
 #define PYTHON_INTERF_H
-#include "render.h"
+#include "scene.h"
 #include "linalg.h"
 
 typedef struct PyVec3 {
