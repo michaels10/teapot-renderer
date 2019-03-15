@@ -24,7 +24,7 @@ typedef struct PyScene {
   void* scene;
 } PyScene;
 
-void add_mesh(PyScene * scene, float *vert, size_t vert_len, int *tris, size_t tris_len, float scttrng, float ior);
+void add_mesh(PyScene * scene, float *vert, size_t vert_len, int *tris, size_t tris_len, float scattering, float ior);
 void add_light(PyScene *scene, PyLight *pylight);
 void __init_scene(PyScene *scene);
 void __init_canvas(PyCanvas *canvas, int width, int height);
@@ -63,8 +63,6 @@ def Light(loc, intensity):
 ### mesh inits ### 
 def Mesh(scene, verts, tris, scattering=0.95, ior=15, flip_y=False):
     if flip_y: verts[:, 1] *= -1   
-    print(len(verts))
-    print(len(tris))
     vert_buf = ffi.cast("float *", ffi.from_buffer(verts.data))
     tri_buf = ffi.cast("int *", ffi.from_buffer(tris.data))
     __c_renderer.add_mesh(scene, vert_buf, len(verts), tri_buf, len(tris), scattering, ior)
