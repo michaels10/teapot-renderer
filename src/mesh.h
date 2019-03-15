@@ -2,22 +2,8 @@
 #define MESH_H 
 #include "render.h"
 #include "linalg.h"
-#include "linalg.h"
-#include "stdio.h"
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <ostream>
-#include <string.h>
 #include <vector>
-using std::abs;
-using std::cout;
-using std::endl;
-using std::max;
-using std::min;
-using std::sqrt;
-using std::swap;
-using std::vector;
+using namespace std;
 
 // forward declarations
 struct Canvas;
@@ -58,6 +44,7 @@ struct Mesh
             Vec3 cur_vert = Vec3(verts[i], verts[i + 1], verts[i + 2]);
             this->verts.push_back(cur_vert);
         }
+
         for (size_t i = 0; i < t_len * 3; i += 3) {
             Triangle cur_tri = Triangle(tris[i], tris[i + 1], tris[i + 2], i);
             printf("%d, %d, %d\n", cur_tri.v0, cur_tri.v1, cur_tri.v2);
