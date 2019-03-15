@@ -5,8 +5,8 @@ LD_FLAGS = -lpthread -std=c++2a
 
 CACHE_LINE_SIZE = $(cat /sys/devices/system/cpu/cpu0/cache/index0/coherency_line_size)
 
-libpyrender/librender.so: src/render.cpp src/python_interface.cpp src/linalg.cpp src/octree.cpp src/render.h src/python_interface.h src/linalg.h src/octree.h
-	$(CXX) $(CXXFLAGS) $(SHAREDFLAGS) -o libpyrender/librender.so src/octree.cpp src/render.cpp src/python_interface.cpp src/linalg.cpp $(LD_FLAGS)
+libpyrender/librender.so: src/render.cpp src/python_interface.cpp src/linalg.cpp src/render.h src/python_interface.h src/linalg.h 
+	$(CXX) $(CXXFLAGS) $(SHAREDFLAGS) -o libpyrender/librender.so src/render.cpp src/python_interface.cpp src/linalg.cpp $(LD_FLAGS)
 
 render-tests: images/plane_teapot_frosted_front.png images/plane_teapot_refract_behind.png images/plane_teacup_front.png
 

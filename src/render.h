@@ -2,7 +2,8 @@
 #define RENDER_H
 #include "linalg.h"
 #include "stdio.h"
-#include "octree.h"
+//#include "octree.h"
+#include "mesh.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -33,72 +34,6 @@ const int MANUAL_LINEAR_EXPOSURE = 1;
 struct Canvas;
 struct BoundingBox;
 
-struct RefTriangle {
-  public:
-    int v0, v1, v2, normal;
-    RefTriangle() {}
-    RefTriangle(int v0, int v1, int v2, int normal): v0(v0), v1(v1), v2(v2), normal(normal){}
-};
-
-struct Triangle {
-  public:
-    Vec3 v0, v1, v2, normal;
-    float ior, scattering;
-    Triangle() {}
-    Triangle(Vec3 v0, Vec3 v1, Vec3 v2, Vec3 normal, float ior, float scattering): v0(v0), v1(v1), v2(v2), normal(normal) {;
-   	this->ior = ior; 
-   	this->scattering = scattering; 
-    }
-
-    Triangle(const Triangle& triangle) {
-        v0 = triangle.v0;
-        v1 = triangle.v1;
-        v2 = triangle.v2;
-        normal = triangle.normal;
-        ior = triangle.ior;
-        scattering = triangle.scattering;
-    }
-
-    BoundingBox get_bounds() const;
-};
-
-struct Mesh {
-  public:
-    vector<Vec3> verts;
-    vector<Vec3> normals;
-    vector<RefTriangle> tris;
-    float ior = 1.5;
-    float scattering = .95;
-    Mesh(float * verts, size_t v_len, int * tris, size_t t_len, float scattering, float ior) {
-	this->verts = vector<Vec3>();
-	this->normals = vector<Vec3>();
-	this->tris = vector<RefTriangle>();
-
-	for (size_t i = 0; i < v_len*3; i += 3) {
-	    Vec3 cur_vert = Vec3(verts[i], verts[i+1], verts[i+2]);
-	    this->verts.push_back(cur_vert);
-	}
-	for (size_t i = 0; i < t_len*3; i += 3) {
-	    RefTriangle cur_tri = RefTriangle(tris[i], tris[i+1], tris[i+2], i);
-	    printf("%d, %d, %d", cur_tri.v0, cur_tri.v1, cur_tri.v2);
-	    this->tris.push_back(cur_tri);
-
-	    Vec3 v0 = verts[cur_tri.v0];
-	    Vec3 v1 = verts[cur_tri.v1];
-	    Vec3 v2 = verts[cur_tri.v2];
-            Vec3 cur_normal = (v1 - v0) % (v2 - v0);
-	    this->normals.push_back(cur_normal);
-	}
-	this->scattering = scattering;
-	this->ior = ior;
-    }
-
-    Triangle get_triangle(RefTriangle tri) const{
-        return Triangle(verts[tri.v0], verts[tri.v1], verts[tri.v2], normals[tri.normal], ior, scattering);
-    }
-
-};
-
 struct Light {
   public:
     Vec3 loc;
@@ -111,57 +46,6 @@ struct Scene {
     vector<Light> lights;
 };
 
-struct Camera {
-  public:
-    Vec3 loc = Vec3(0, 4, -10);
-    Vec3 rotation; // = Vec3(-0.523599, 0, 0); // PYR, default is looking down Z+
-    float focal_plane_distance = 1;
-    float focal_plane_width = 4;
-    float focal_plane_height = 4;
-    int exposure_mode = AUTO_LINEAR_EXPOSURE;
-    float max_exposure_energy = 55.0f;
-    void expose(Canvas &canvas) const;
-    Camera(){};
-    Camera(float focal_distance, float width, float height, float max_exposure)
-        : focal_plane_distance(focal_distance), focal_plane_width(width),
-          focal_plane_height(height), max_exposure_energy(max_exposure) {
-        exposure_mode = MANUAL_LINEAR_EXPOSURE;
-    }
-    Camera(float focal_distance, float width, float height)
-        : focal_plane_distance(focal_distance), focal_plane_width(width),
-          focal_plane_height(height) {
-        exposure_mode = AUTO_LINEAR_EXPOSURE;
-    }
-    int max_reflections = 8;
-};
-
-struct RaycastResult {
-  public:
-    Vec3 intersect;
-    Triangle triangle;
-    float distance = 999999;
-    bool hit = false;
-    RaycastResult(Vec3 intersect, float t, Triangle tri) : intersect(intersect), distance(t) {
-        triangle = tri;
-        hit = true;
-    };
-    RaycastResult(bool hit) { this->hit = hit; };
-    RaycastResult(){};
-};
-
-struct Canvas {
-  public:
-    int width, height;
-    float *buffer;
-
-    Canvas(int rows, int cols) : width(cols), height(rows) {
-        buffer = new float[width * height];
-        memset(buffer, 0.0f, width * height * sizeof(float));
-    }
-    ~Canvas() { delete[] buffer; }
-    float *operator[](int row) { return &buffer[row * width]; }
-};
-
 struct Ray {
   public:
     Vec3 origin;
@@ -169,13 +53,95 @@ struct Ray {
     float ior = 1;
 };
 
-void render_ray(Canvas &canvas, const Scene &scene, const Ray &ray, int i, int j, float multiplier,
-                int reflection_count, int max_reflections);
+struct RaycastResult {
+  public:
+    Vec3 intersect;
+    Vec3 normal;
+    float distance = 999999;
+    float scattering = 1.0;
+    float refraction = 0.0;
+    float ior = 1.3;
+    bool hit = false;
 
-void subrender(Canvas &canvas, const Scene &scene, const Camera &camera, queue<int> &block_queue,
-               mutex &queue_lock);
+    RaycastResult(Vec3 intersect, Vec3 normal, float scattering, float refraction, 
+            float ior, float t) {
 
-Ray get_initial_ray(const Canvas &canvas, const Camera &camera, int ray_id);
+        this->normal = Vec3(normal);
+        this->intersect = Vec3(intersect);
+        this->scattering = scattering;
+        this->refraction = refraction;
+        this->ior = ior;
+        this->distance = t;
+        hit = true;
+    };
+    RaycastResult(bool hit) { this->hit = hit; };
+    RaycastResult() {};
+};
 
-void render(Canvas &canvas, const Scene &scene, const Camera &camera);
+struct Canvas {
+  public:
+    size_t width, height; 
+    float * buffer;
+    Canvas () {}
+    Canvas(size_t width, size_t height) {
+        this->width = width;
+        this->height = height;
+        buffer = new float[width * height];
+        memset(buffer, 0.0f, width * height * sizeof(float));
+    }
+
+    ~Canvas() { 
+        delete[] buffer; 
+    }
+
+    float *operator[](int row) { 
+        return &buffer[height * row]; 
+    }
+};
+
+struct Camera {
+  public:
+    Vec3 loc = Vec3(0, 4, -10);
+    Vec3 rotation; // = Vec3(-0.523599, 0, 0); // PYR, default is looking down Z+
+
+    // Camera settings
+    float focal_plane_distance = 1;
+    float focal_plane_width = 4;
+    float focal_plane_height = 4;
+    int exposure_mode = AUTO_LINEAR_EXPOSURE;
+    float max_exposure_energy = 55.0f;
+
+    // Render settings
+    float multiplier = 1;
+    int reflection_count = 1, max_reflections = 8;
+
+    // canvas settings
+    Canvas canvas;
+
+    Camera() {};
+    Camera(float focal_distance, float width, float height, float max_exposure, int res_x, int res_y) {
+        this->focal_plane_distance = focal_distance;
+        this->focal_plane_width = width;
+        this->focal_plane_height = height;
+        this->max_exposure_energy = max_exposure;
+        canvas = Canvas(res_x, res_y);
+
+        exposure_mode = MANUAL_LINEAR_EXPOSURE;
+    }
+
+    Camera(float focal_distance, float width, float height, int res_x, int res_y) {
+        this->focal_plane_distance = focal_distance;
+        this->focal_plane_width = width;
+        this->focal_plane_height = height;
+
+        exposure_mode = AUTO_LINEAR_EXPOSURE;
+    }
+
+    void expose();
+    Ray get_initial_ray(int i, int j) const;
+    void render_ray(const Scene &scene, const Ray &ray, int i, int j, 
+        double multiplier, int reflection_count);
+};
+
+
 #endif
