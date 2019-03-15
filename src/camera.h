@@ -7,6 +7,9 @@
 const int AUTO_LINEAR_EXPOSURE = 0;
 const int MANUAL_LINEAR_EXPOSURE = 1;
 
+struct Canvas;
+struct Ray;
+
 struct Camera {
   public:
     Vec3 loc = Vec3(0, 4, -10);
@@ -23,17 +26,16 @@ struct Camera {
     float multiplier = 1;
     int reflection_count = 1, max_reflections = 8;
 
-    Camera(float focal_distance, float width, float height, float max_exposure, int res_x, int res_y) {
+    Camera(float focal_distance, float width, float height, float max_exposure) {
         this->focal_plane_distance = focal_distance;
         this->focal_plane_width = width;
         this->focal_plane_height = height;
         this->max_exposure_energy = max_exposure;
-        canvas = Canvas(res_x, res_y);
 
         exposure_mode = MANUAL_LINEAR_EXPOSURE;
     }
 
-    Camera(float focal_distance, float width, float height, int res_x, int res_y) {
+    Camera(float focal_distance, float width, float height) {
         this->focal_plane_distance = focal_distance;
         this->focal_plane_width = width;
         this->focal_plane_height = height;
@@ -43,8 +45,6 @@ struct Camera {
 
     void expose(Canvas &canvas);
     Ray get_initial_ray(int i, int j) const;
-    void render_ray(const Scene &scene, const Ray &ray, int i, int j, 
-        double multiplier, int reflection_count);
 };
 
 #endif
