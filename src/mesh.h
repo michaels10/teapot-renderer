@@ -1,22 +1,21 @@
 #ifndef MESH_H
-#define MESH_H 
-#include "scene.h"
+#define MESH_H
 #include "linalg.h"
+#include "scene.h"
+#include "stdio.h"
 #include <vector>
 
-using namespace std;
+using std::vector;
 
 // forward declarations
 struct Canvas;
 struct BoundingBox;
 struct RaycastResult;
 
-struct Triangle
-{
+struct Triangle {
   public:
     int v0, v1, v2, normal;
-    Triangle() {}
-    Triangle(int v0, int v1, int v2, int normal){
+    Triangle(int v0, int v1, int v2, int normal) {
         this->v0 = v0;
         this->v1 = v1;
         this->v2 = v2;
@@ -25,18 +24,15 @@ struct Triangle
     BoundingBox get_bounds() const;
 };
 
-struct Mesh 
-{
+struct Mesh {
   public:
     vector<Vec3> verts;
     vector<Vec3> normals;
     vector<Triangle> tris;
     float ior = 1.5;
     float scattering = .95;
-    float refraction = .00;
 
-    Mesh(float *verts, size_t v_len, int *tris, size_t t_len, float scattering, float refraction, 
-            float ior) {
+    Mesh(float *verts, size_t v_len, int *tris, size_t t_len, float scattering, float ior) {
         this->verts = vector<Vec3>();
         this->normals = vector<Vec3>();
         this->tris = vector<Triangle>();
@@ -48,7 +44,6 @@ struct Mesh
 
         for (size_t i = 0; i < t_len * 3; i += 3) {
             Triangle cur_tri = Triangle(tris[i], tris[i + 1], tris[i + 2], i);
-            printf("%d, %d, %d\n", cur_tri.v0, cur_tri.v1, cur_tri.v2);
             this->tris.push_back(cur_tri);
 
             Vec3 v0 = verts[cur_tri.v0];
@@ -58,11 +53,10 @@ struct Mesh
             this->normals.push_back(cur_normal);
         }
         this->scattering = scattering;
-        this->refraction = refraction;
         this->ior = ior;
     }
 
-    RaycastResult intersect(const Vec3 &origin, const Vec3 &ray);
-    RaycastResult raycast(const Vec3 &origin, const Vec3 &ray, const Triangle &tri);
+    RaycastResult intersect(const Vec3 &origin, const Vec3 &ray) const ;
+    RaycastResult raycast(const Vec3 &origin, const Vec3 &ray, const Triangle &tri)const;
 };
 #endif
